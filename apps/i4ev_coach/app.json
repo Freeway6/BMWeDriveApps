@@ -1,18 +1,25 @@
 {
   "id": "i4ev_coach",
-  "title": "Efficiency Coach",
-  "description": "Your real consumption from the battery's own energy: now against what this car usually takes at the same speeds, per drive, and how speed, outside temperature, driving mode and climate change it, with the range that is left at the way you drive now",
-  "version": "0.1.0",
+  "title": "Effizienz-Coach",
+  "description": "Dein echter Verbrauch aus der Energie des Akkus: jetzt gegen das, was dein Auto bei gleichem Tempo üblicherweise braucht, je Fahrt, und wie Tempo, Außentemperatur, Fahrmodus und Klima ihn verändern, mit der Reichweite bei deiner jetzigen Fahrweise",
+  "version": "0.2.0",
   "autostart": true,
   "vendor": "custom",
   "loggingId": "I4EF",
   "iconGlyph": "gauge",
-  "mguHmi": ["ID7", "ID8"],
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
   "signals": {
     "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
       "_instances": "SystemFunctionsInternalTasuInst1",
-      "_methods": ["sendTasuRequest"],
-      "_broadcasts": ["sendTasuResponse"]
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
     },
     "de.bmw.infotainment.vehicle.Vehicle2": {
       "statusCarSpeed2": "rs"
@@ -37,27 +44,178 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "Efficiency Coach",
+      "title": "Effizienz-Coach",
       "buttons": [
-        ["BTN_PAGE", "Next page"],
-        ["BTN_PREV", "Previous page"],
-        ["BTN_SETTINGS", "Settings"]
+        [
+          "BTN_PAGE",
+          "Nächste Seite"
+        ],
+        [
+          "BTN_PREV",
+          "Vorherige Seite"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Einstellungen"
+        ]
       ]
     }
   ],
   "settings": [
-    { "key": "window", "label": "Consumption now: over the last", "type": "number", "unit": "km", "default": 5, "steps": [2, 5, 10] },
-    { "key": "distUnit", "label": "Distance unit", "type": "choice", "default": "km", "options": [["km", "km (kWh/100 km)"], ["mi", "miles (mi/kWh)"]] },
-    { "key": "tempUnit", "label": "Temperature unit", "type": "choice", "default": "c", "options": [["c", "Celsius"], ["f", "Fahrenheit"]] },
-    { "key": "battery", "label": "Battery (when the energy cannot be read)", "type": "choice", "default": "83.9",
-      "options": [["83.9", "83.9 kWh (80.7 usable)"], ["70.2", "70.2 kWh (67.1 usable)"]] },
-    { "key": "sample", "label": "Read the battery's energy every", "type": "number", "unit": "s", "default": 10, "steps": [5, 10, 20] },
-    { "key": "diagPage", "label": "Diagnostics page (UDS replies, signals)", "type": "bool", "default": false },
-    { "key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
-      "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]] },
-    { "key": "layout", "label": "Screen layout", "type": "choice", "default": "full", "options": [["full", "Full screen"], ["standard", "Standard"]] },
-    { "key": "renderer", "label": "Renderer", "type": "choice", "default": "auto", "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]] },
-    { "key": "demo", "label": "Demo data", "type": "choice", "default": "auto", "options": [["auto", "Auto"], ["on", "Always"], ["off", "Never"]] }
+    {
+      "key": "window",
+      "label": "Verbrauch jetzt: über die letzten",
+      "type": "number",
+      "unit": "km",
+      "default": 5,
+      "steps": [
+        2,
+        5,
+        10
+      ]
+    },
+    {
+      "key": "distUnit",
+      "label": "Entfernungseinheit",
+      "type": "choice",
+      "default": "km",
+      "options": [
+        [
+          "km",
+          "km (kWh/100 km)"
+        ],
+        [
+          "mi",
+          "Meilen (mi/kWh)"
+        ]
+      ]
+    },
+    {
+      "key": "tempUnit",
+      "label": "Temperatureinheit",
+      "type": "choice",
+      "default": "c",
+      "options": [
+        [
+          "c",
+          "Celsius"
+        ],
+        [
+          "f",
+          "Fahrenheit"
+        ]
+      ]
+    },
+    {
+      "key": "battery",
+      "label": "Akku (wenn die Energie nicht lesbar ist)",
+      "type": "choice",
+      "default": "83.9",
+      "options": [
+        [
+          "83.9",
+          "83,9 kWh (80,7 nutzbar)"
+        ],
+        [
+          "70.2",
+          "70,2 kWh (67,1 nutzbar)"
+        ]
+      ]
+    },
+    {
+      "key": "sample",
+      "label": "Energie des Akkus lesen alle",
+      "type": "number",
+      "unit": "s",
+      "default": 10,
+      "steps": [
+        5,
+        10,
+        20
+      ]
+    },
+    {
+      "key": "diagPage",
+      "label": "Diagnoseseite (UDS-Antworten, Signale)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "theme",
+      "label": "Farbschema",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Rot"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Eisweiß"
+        ],
+        [
+          "amber",
+          "Nacht-Bernstein"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Bildschirmaufteilung",
+      "type": "choice",
+      "default": "full",
+      "options": [
+        [
+          "full",
+          "Vollbild"
+        ],
+        [
+          "standard",
+          "Standard"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Darstellung",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU, 60 Bilder/s (Standard)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Demodaten",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch"
+        ],
+        [
+          "on",
+          "Immer"
+        ],
+        [
+          "off",
+          "Nie"
+        ]
+      ]
+    }
   ],
   "config": {
     "hv": {

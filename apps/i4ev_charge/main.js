@@ -33,7 +33,7 @@ const SHARED = '/tmp/i4ev-charge-grid.json';
 const IDLE_MS = 20000;
 const LEFT_GRACE = 10 * 60000;
 const LOSS = { DC: 1.05, AC: 1.1 };      // energy from the charger per kWh into the battery (estimate)
-const NAMES = { live: 'Now', curve: 'Curve', log: 'Charges', diag: 'Diagnostics' };
+const NAMES = { live: 'Jetzt', curve: 'Kurve', log: 'Ladungen', diag: 'Diagnose' };
 
 /* ---------------- the recorder: runs from the start, with or without the screens ---------------- */
 function engine(env) {
@@ -153,6 +153,7 @@ function engine(env) {
 /* ---------------- the screens ---------------- */
 function startUi(ctx, eng) {
     const { ui, settings } = ctx;
+    const F = C.fmt;
     let sel = 0;              // the charge shown on Curve and marked on Charges: 0 = the newest
     let scroll = 0;
     const pages = () => ['live', 'curve', 'log'].concat(settings.get('diagPage') ? ['diag'] : []);
@@ -160,15 +161,15 @@ function startUi(ctx, eng) {
     const sessions = (v) => v.st.sessions.slice().reverse();          // newest first
     const tU = () => (settings.get('tempUnit') === 'f' ? '°F' : '°C');
     const T = (c) => C.temp(c, settings.get('tempUnit'));
-    const fmtT = (c) => (isNum(c) ? G.fmt(T(c), 0) + ' ' + tU() : '--');
+    const fmtT = (c) => (isNum(c) ? F(T(c), 0) + ' ' + tU() : '--');
     const price = (s) => (s.kind === 'DC' ? settings.get('priceDc') : settings.get('priceAc'));
     const cost = (s) => (isNum(s.kwh) && price(s) > 0 ? s.kwh * LOSS[s.kind] * price(s) : null);
 
     let actText = '', pinText = '';
     function labels() {
         const p = pg.page(), v = eng.view(), list = sessions(v), s = list[sel];
-        const a = p === 'live' ? 'Show last charge' : 'Next charge';
-        const b = s && v.st.pinned === s.id ? 'Unpin reference' : 'Pin as reference';
+        const a = p === 'live' ? 'Letzte Ladung zeigen' : 'Nächste Ladung';
+        const b = s && v.st.pinned === s.id ? 'Referenz lösen' : 'Als Referenz merken';
         if (a !== actText) { actText = a; ui.text('BTN_ACT', a); }
         if (b !== pinText) { pinText = b; ui.text('BTN_PIN', b); }
     }
@@ -215,14 +216,14 @@ function startUi(ctx, eng) {
 
     function drawLive(cv, t, v) {
         const o = v.open, n = v.now || {}, list = sessions(v);
-        const r = G.panel(cv, t, 24, 44, 640, 468, 'Now');
+        const r = G.panel(cv, t, 24, 44, 640, 468, 'Jetzt');
         const target = Number(settings.get('target'));
         const charging = !!o;
-        const state = !v.link ? ['NO DIAGNOSTIC LINK YET', t.warn] : charging ? ['CHARGING  ' + (o.dc || o.peak > 11.5 ? 'DC' : 'AC'), U.GO] : ['NOT CHARGING', t.dim];
+        const state = !v.link ? ['NOCH KEINE DIAGNOSEVERBINDUNG', t.warn] : charging ? ['LÄDT  ' + (o.dc || o.peak > 11.5 ? 'DC' : 'AC'), U.GO] : ['LÄDT NICHT', t.dim];
         U.tag(cv, t, r.x + 24, r.y + 92, state[0], state[1], 24);
         const cT = isNum(v.cellT) ? v.cellT : n.temp && n.temp.min;
         if (charging) {
-            U.big(cv, t, r.x + 24, r.y + 236, isNum(n.kwIn) ? G.fmt(Math.max(0, n.kwIn), 0) : '--', 'kW', 150, t.text);
+            U.big(cv, t, r.x + 24, r.y + 236, isNum(n.kwIn) ? F(Math.max(0, n.kwIn), 0) : '--', 'kW', 150, t.text);
             const el = o.t1 - o.t0;
             const peak = o.peak || 0, socNow = isNum(n.soc) ? n.soc : o.soc1;
             // the time left: the expected curve scaled to how this charge goes now, no more than its peak so far (the station)
@@ -234,61 +235,61 @@ function startUi(ctx, eng) {
                 eta = m ? (m.min - M.RAMP_MIN) / f : null;
             }
             const rows = [
-                ['Charge', G.fmt(socNow, 1) + ' %   from ' + G.fmt(o.soc0, 1) + ' %'],
-                ['Added', G.fmt(o.kwh, 1) + ' kWh   ' + C.dur(el)],
-                ['Cells', isNum(cT) ? fmtT(cT) + (n.temp && isNum(n.temp.max) ? ' - ' + fmtT(n.temp.max) : '') : '--'],
-                ['To ' + target + ' %', socNow >= target ? 'reached' : isNum(eta) ? 'about ' + C.dur(eta * 60000) + '  (' + C.when(Date.now() + eta * 60000) + ')' : '--'],
-                ['Peak', G.fmt(peak, 0) + ' kW at ' + G.fmt(o.peakSoc, 0) + ' %'],
+                ['Ladestand', F(socNow, 1) + ' %   von ' + F(o.soc0, 1) + ' %'],
+                ['Geladen', F(o.kwh, 1) + ' kWh   ' + C.dur(el)],
+                ['Zellen', isNum(cT) ? fmtT(cT) + (n.temp && isNum(n.temp.max) ? ' - ' + fmtT(n.temp.max) : '') : '--'],
+                ['Bis ' + target + ' %', socNow >= target ? 'erreicht' : isNum(eta) ? 'etwa ' + C.dur(eta * 60000) + '  (' + C.when(Date.now() + eta * 60000) + ')' : '--'],
+                ['Spitze', F(peak, 0) + ' kW bei ' + F(o.peakSoc, 0) + ' %'],
             ];
             rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 290 + i * 38, x[0], x[1]));
         } else {
-            U.big(cv, t, r.x + 24, r.y + 236, isNum(n.soc) ? G.fmt(n.soc, 0) : '--', '%', 150, t.text);
+            U.big(cv, t, r.x + 24, r.y + 236, isNum(n.soc) ? F(n.soc, 0) : '--', '%', 150, t.text);
             const last = list[0];
             const rows = [
-                ['Energy in the battery', n.energy && isNum(n.energy.stored) ? G.fmt(n.energy.stored, 1) + ' of ' + G.fmt(n.energy.cap, 1) + ' kWh' : '--'],
-                ['Cells', isNum(cT) ? fmtT(cT) + (n.temp && isNum(n.temp.max) ? ' - ' + fmtT(n.temp.max) : '') : '--'],
-                ['Last charge', last ? C.when(last.t0) + '   ' + last.kind + ' ' + G.fmt(last.soc0, 0) + ' -> ' + G.fmt(last.soc1, 0) + ' %' : 'none yet'],
-                ['', v.link ? 'Plug in: the charge is recorded by itself' : 'Waiting for the battery unit'],
+                ['Energie im Akku', n.energy && isNum(n.energy.stored) ? F(n.energy.stored, 1) + ' von ' + F(n.energy.cap, 1) + ' kWh' : '--'],
+                ['Zellen', isNum(cT) ? fmtT(cT) + (n.temp && isNum(n.temp.max) ? ' - ' + fmtT(n.temp.max) : '') : '--'],
+                ['Letzte Ladung', last ? C.when(last.t0) + '   ' + last.kind + ' ' + F(last.soc0, 0) + ' -> ' + F(last.soc1, 0) + ' %' : 'noch keine'],
+                ['', v.link ? 'Einstecken: Die Ladung wird von selbst aufgezeichnet' : 'Warte auf das Batteriesteuergerät'],
             ];
             rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 290 + i * 44, x[0], x[1], i === 3 ? t.dim : null));
         }
         // the curve: this charge (or the last), its reference, and what the model expects at the cells' temperature now
         const s = o ? Object.assign({}, o, { points: o.points }) : list[0];
         const ref = reference(v.st.sessions, s, v.st.pinned);
-        const rr = G.panel(cv, t, 688, 44, 888, 468, o ? 'This charge' : s ? 'Last charge  ' + C.when(s.t0) : 'Curve');
+        const rr = G.panel(cv, t, 688, 44, 888, 468, o ? 'Diese Ladung' : s ? 'Letzte Ladung  ' + C.when(s.t0) : 'Kurve');
         const own = curvePts(s), refPts = curvePts(ref), exp = expected(isNum(cT) ? cT : 25, v, null);
         U.chart(cv, t, rr.x + 16, rr.y + 70, rr.w - 32, rr.h - 92, {
             xMin: 0, xMax: 100, xStep: 10, yMin: 0, yMax: yMax(own.concat(refPts, exp)), xUnit: '%', yUnit: 'kW',
             series: [{ pts: exp, color: t.dim, width: 1.5, dash: true }, { pts: refPts, color: t.cold || '#5aa9ff', width: 2.5 },
                 { pts: own, color: U.GO, width: 3.5, fill: 0.14 }],
-            empty: 'No charge recorded yet',
+            empty: 'Noch keine Ladung aufgezeichnet',
         });
-        legend(cv, t, rr.x + 220, rr.y + 40, [{ text: o ? 'this charge' : 'last', color: U.GO }, ref && { text: 'reference ' + C.when(ref.t0), color: t.cold || '#5aa9ff' },
-            { text: 'expected at ' + fmtT(isNum(cT) ? cT : 25), color: t.dim, dash: true }]);
+        legend(cv, t, rr.x + 230, rr.y + 40, [{ text: o ? 'diese Ladung' : 'letzte', color: U.GO }, ref && { text: 'Referenz ' + C.when(ref.t0), color: t.cold || '#5aa9ff' },
+            { text: 'erwartet bei ' + fmtT(isNum(cT) ? cT : 25), color: t.dim, dash: true }]);
     }
 
     function drawCurve(cv, t, v) {
         const list = sessions(v);
         if (sel >= list.length) sel = 0;
         const s = list[sel];
-        const r = G.panel(cv, t, 24, 44, 560, 468, s ? (sel === 0 ? 'Newest charge' : 'Charge ' + (sel + 1) + ' of ' + list.length) : 'Curve');
-        if (!s) { U.note(cv, t, r.x, r.y, r.w, r.h, 'No charge recorded yet.\nPlug in and leave the head unit on:\nthe charge is recorded by itself.'); return; }
+        const r = G.panel(cv, t, 24, 44, 560, 468, s ? (sel === 0 ? 'Neueste Ladung' : 'Ladung ' + (sel + 1) + ' von ' + list.length) : 'Kurve');
+        if (!s) { U.note(cv, t, r.x, r.y, r.w, r.h, 'Noch keine Ladung aufgezeichnet.\nEinstecken und die Headunit an lassen:\nDie Ladung wird von selbst aufgezeichnet.'); return; }
         const ref = reference(v.st.sessions, s, v.st.pinned);
         const c = cost(s), sp = span(s), rsp = ref ? span(ref) : null;
         // the reference over the same span, when it has it
         const refMin = sp && ref ? between(ref, sp.a, sp.b) : null;
         const rows = [
-            ['When', C.when(s.t0) + '   ' + C.dur(s.t1 - s.t0)],
-            ['Type', s.kind + (s.partial ? '  (head unit slept, partly)' : '')],
-            ['Charge', G.fmt(s.soc0, 1) + ' -> ' + G.fmt(s.soc1, 1) + ' %'],
-            ['Energy', G.fmt(s.kwh, 1) + ' kWh' + (isNum(c) ? '   about ' + G.fmt(c, 2) + ' EUR' : '')],
-            ['Peak / mean', G.fmt(s.peak, 0) + ' / ' + G.fmt(s.avg, 0) + ' kW'],
-            [sp ? sp.a + ' -> ' + sp.b + ' %' : 'Time per span', sp && isNum(sp.min) ? G.fmt(sp.min, 0) + ' min' + (isNum(refMin) ? '   reference ' + G.fmt(refMin, 0) + ' min' : '') : '--'],
-            ['Cells', fmtT(s.temp0) + ' -> ' + fmtT(s.temp1) + (isNum(s.tmax) ? '  (max ' + fmtT(s.tmax) + ')' : '')],
-            ['Reference', ref ? C.when(ref.t0) + (v.st.pinned === ref.id ? ' (pinned)' : '') + (rsp && isNum(rsp.min) ? '   ' + rsp.a + '-' + rsp.b + ' %: ' + G.fmt(rsp.min, 0) + ' min' : '') : 'none'],
+            ['Wann', C.when(s.t0) + '   ' + C.dur(s.t1 - s.t0)],
+            ['Art', s.kind + (s.partial ? '  (Headunit schlief, teilweise)' : '')],
+            ['Ladestand', F(s.soc0, 1) + ' -> ' + F(s.soc1, 1) + ' %'],
+            ['Energie', F(s.kwh, 1) + ' kWh' + (isNum(c) ? '   etwa ' + F(c, 2) + ' €' : '')],
+            ['Spitze / Mittel', F(s.peak, 0) + ' / ' + F(s.avg, 0) + ' kW'],
+            [sp ? sp.a + ' -> ' + sp.b + ' %' : 'Zeit je Spanne', sp && isNum(sp.min) ? F(sp.min, 0) + ' min' + (isNum(refMin) ? '   Referenz ' + F(refMin, 0) + ' min' : '') : '--'],
+            ['Zellen', fmtT(s.temp0) + ' -> ' + fmtT(s.temp1) + (isNum(s.tmax) ? '  (max. ' + fmtT(s.tmax) + ')' : '')],
+            ['Referenz', ref ? C.when(ref.t0) + (v.st.pinned === ref.id ? ' (gemerkt)' : '') + (rsp && isNum(rsp.min) ? '   ' + rsp.a + '-' + rsp.b + ' %: ' + F(rsp.min, 0) + ' min' : '') : 'keine'],
         ];
-        rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 92 + i * 46, x[0], x[1], x[0] === 'Reference' && ref ? t.cold : null));
-        const rr = G.panel(cv, t, 608, 44, 968, 468, 'Power and cell temperature over charge level');
+        rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 92 + i * 46, x[0], x[1], x[0] === 'Referenz' && ref ? t.cold : null));
+        const rr = G.panel(cv, t, 608, 44, 968, 468, 'Leistung und Zelltemperatur');
         const own = curvePts(s), refPts = curvePts(ref);
         const lo = Math.max(0, Math.floor(Math.min(s.soc0, ref ? ref.soc0 : 100) / 10) * 10), hi = Math.min(100, Math.ceil(Math.max(s.soc1, ref ? ref.soc1 : 0) / 10) * 10);
         const xMin = hi - lo >= 20 ? lo : 0, xMax = hi - lo >= 20 ? hi : 100;
@@ -303,14 +304,14 @@ function startUi(ctx, eng) {
             xMin, xMax, xStep: 10, yMin: tl, yMax: Math.max(th, tl + 10), yStep: 10, xUnit: '%', yUnit: tU(),
             series: [{ pts: tr, color: t.cold || '#5aa9ff', width: 2 }, { pts: tp, color: t.warn, width: 2.5 }],
         });
-        legend(cv, t, rr.x + 520, rr.y + 40, [{ text: 'this charge', color: U.GO }, ref && { text: 'reference', color: t.cold || '#5aa9ff' }, { text: 'cells', color: t.warn }]);
+        legend(cv, t, rr.x + 470, rr.y + 40, [{ text: 'diese Ladung', color: U.GO }, ref && { text: 'Referenz', color: t.cold || '#5aa9ff' }, { text: 'Zellen', color: t.warn }]);
     }
 
     function drawLog(cv, t, v) {
         const list = sessions(v);
         const total = list.reduce((a, s) => a + (s.kwh || 0), 0), money = list.reduce((a, s) => a + (cost(s) || 0), 0);
-        const r = G.panel(cv, t, 24, 44, 1552, 468, list.length ? list.length + ' charges   ' + G.fmt(total, 0) + ' kWh   about ' + G.fmt(money, 0) + ' EUR' : 'Charges');
-        if (!list.length) { U.note(cv, t, r.x, r.y, r.w, r.h, 'No charge recorded yet'); return; }
+        const r = G.panel(cv, t, 24, 44, 1552, 468, list.length ? list.length + ' Ladungen   ' + F(total, 0) + ' kWh   etwa ' + F(money, 0) + ' €' : 'Ladungen');
+        if (!list.length) { U.note(cv, t, r.x, r.y, r.w, r.h, 'Noch keine Ladung aufgezeichnet'); return; }
         const rows = Math.floor((r.h - 100) / 40);
         if (sel >= list.length) sel = 0;
         scroll = G.clamp(sel - Math.floor(rows / 2), 0, Math.max(0, list.length - rows));
@@ -318,14 +319,14 @@ function startUi(ctx, eng) {
         const shown = list.slice(scroll, scroll + rows);
         cv.roundRect(r.x + 12, y0 + 30 + (sel - scroll) * 40, r.w - 24, 40, 6, U.withAlpha(t.sel || t.accent, 0.22));
         G.table(cv, t, r.x + 24, y0, r.w - 48, [
-            { label: 'When', w: 190 }, { label: 'Type', w: 80 }, { label: 'Charge', w: 170 }, { label: 'Energy', w: 150, align: 'right' },
-            { label: 'Peak', w: 130, align: 'right' }, { label: 'Mean', w: 130, align: 'right' }, { label: 'Time per span', w: 220, align: 'right' },
-            { label: 'Cells', w: 170, align: 'right' }, { label: 'Cost', w: 150, align: 'right' }],
+            { label: 'Wann', w: 190 }, { label: 'Art', w: 80 }, { label: 'Ladestand', w: 170 }, { label: 'Energie', w: 150, align: 'right' },
+            { label: 'Spitze', w: 130, align: 'right' }, { label: 'Mittel', w: 130, align: 'right' }, { label: 'Zeit je Spanne', w: 220, align: 'right' },
+            { label: 'Zellen', w: 170, align: 'right' }, { label: 'Kosten', w: 150, align: 'right' }],
         shown.map((s) => {
             const m = span(s), c = cost(s), pinned = v.st.pinned === s.id;
-            return [(pinned ? '* ' : '') + C.when(s.t0), { text: s.kind, color: s.kind === 'DC' ? U.GO : null }, G.fmt(s.soc0, 0) + ' -> ' + G.fmt(s.soc1, 0) + ' %',
-                G.fmt(s.kwh, 1) + ' kWh', G.fmt(s.peak, 0) + ' kW', G.fmt(s.avg, 0) + ' kW', m && isNum(m.min) ? m.a + '-' + m.b + ' %: ' + C.dur(m.min * 60000) : '--',
-                fmtT(s.temp0) + ' -> ' + fmtT(s.temp1), isNum(c) ? G.fmt(c, 2) + ' EUR' : '--'];
+            return [(pinned ? '* ' : '') + C.when(s.t0), { text: s.kind, color: s.kind === 'DC' ? U.GO : null }, F(s.soc0, 0) + ' -> ' + F(s.soc1, 0) + ' %',
+                F(s.kwh, 1) + ' kWh', F(s.peak, 0) + ' kW', F(s.avg, 0) + ' kW', m && isNum(m.min) ? m.a + '-' + m.b + ' %: ' + C.dur(m.min * 60000) : '--',
+                fmtT(s.temp0) + ' -> ' + fmtT(s.temp1), isNum(c) ? F(c, 2) + ' €' : '--'];
         }), { rowH: 40, size: 22, stripe: true });
         cv.scroll = { y: y0 + 30 };
     }
@@ -335,8 +336,8 @@ function startUi(ctx, eng) {
         if (p === 'live') drawLive(cv, t, v);
         else if (p === 'curve') drawCurve(cv, t, v);
         else if (p === 'log') drawLog(cv, t, v);
-        else U.diagPage(cv, t, eng.hv, eng.live, [['grid cells learned', String(Object.keys(v.st.grid || {}).length)], ['speed', G.fmt(eng.live.speed, 1) + ' km/h'], ['vehicle state', String(eng.live.cond)]]);
-        pg.header(cv, t, [U.demoBadge(v.demo), v.open && { text: 'CHARGING', color: U.GO }]);
+        else U.diagPage(cv, t, eng.hv, eng.live, [['gelernte Felder', String(Object.keys(v.st.grid || {}).length)], ['Tempo', F(eng.live.speed, 1) + ' km/h'], ['Fahrzeugzustand', String(eng.live.cond)]]);
+        pg.header(cv, t, [U.demoBadge(v.demo), v.open && { text: 'LÄDT', color: U.GO }]);
         return ui.image('MAIN_GFX', cv);
     }
     labels();

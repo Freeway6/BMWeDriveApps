@@ -163,6 +163,19 @@ test('coach: slices by speed band, the usual, the last km', () => {
     assert.deepStrictEqual([w.km, w.kwh], [5, 0.8]);
 });
 
+/* ---------------- ev_core: German formats ---------------- */
+test('core: decimal comma, German weekdays, durations', () => {
+    const C = L('ev_core');
+    assert.strictEqual(C.fmt(12.345, 1), '12,3');
+    assert.strictEqual(C.fmt(205, 0), '205');
+    assert.strictEqual(C.fmt(null, 1), '--');
+    const now = new Date(2026, 10, 20, 12, 0).getTime();               // a Friday
+    assert.strictEqual(C.when(new Date(2026, 10, 19, 8, 5).getTime(), now), 'Do 08:05');
+    assert.strictEqual(C.when(new Date(2026, 9, 3, 14, 5).getTime(), now), '03.10. 14:05');
+    assert.strictEqual(C.dur(65 * 60000), '1:05 h');
+    assert.strictEqual(C.consUnit('km'), 'kWh/100 km');
+});
+
 /* ---------------- ev_signals ---------------- */
 test('signals: driving modes and vehicle states by name or number', () => {
     const { modeOf, conditionOf } = L('ev_signals');

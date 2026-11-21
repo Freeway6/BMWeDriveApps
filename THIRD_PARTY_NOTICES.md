@@ -5,7 +5,9 @@
   `kit/LICENSE`. Taken unchanged at the commit in `kit/UPSTREAM_COMMIT`; see `kit/README.md`.
 - **`lib/ev_link.js`** follows the link queue of idrive7-apps' eDrive app (`apps/edrive/linkqueue.js`, MIT).
 - **Font atlases** in `kit/runtime/fonts/`: baked from the Ubuntu font family (Ubuntu Font Licence 1.0),
-  Barlow and Noto Sans SC (SIL Open Font License 1.1, `OFL-*.txt` beside them).
+  Barlow and Noto Sans SC (SIL Open Font License 1.1, `OFL-*.txt` beside them). The German atlases in
+  `i18n/fonts/de/` are the same Ubuntu atlases with the German letters added (`tools/bake_german.py`, after
+  idrive7-apps' `bake_spanish.py`, MIT).
 - **Battery identifiers and scalings** in `lib/ev_hv.js` (which DID holds which value, and how it is scaled):
   from the OBDb signal sets of the [iX3](https://github.com/OBDb/BMW-iX3), [iX](https://github.com/OBDb/BMW-iX)
   and [i4](https://github.com/OBDb/BMW-i4) (CC BY-SA 4.0) and from idrive7-apps' eDrive app (MIT).

@@ -27,7 +27,7 @@ const U = require('./ev_ui');
 const { isNum } = C;
 const W = 1600, H = 520;
 const MAX_EVENTS = 300;
-const NAMES = { live: 'Now', stops: 'Braking', trips: 'Drives', diag: 'Diagnostics' };
+const NAMES = { live: 'Jetzt', stops: 'Bremsen', trips: 'Fahrten', diag: 'Diagnose' };
 
 /** What a drive's accumulators become in its summary (also for the drive going on). */
 function tripSummary(o) {
@@ -166,6 +166,7 @@ function engine(env) {
 
 function startUi(ctx, eng) {
     const { ui, settings } = ctx;
+    const F = C.fmt;
     const pages = () => ['live', 'stops', 'trips'].concat(settings.get('diagPage') ? ['diag'] : []);
     const pg = U.pager(ctx, pages, NAMES, () => render());
     const mi = () => settings.get('distUnit') === 'mi';
@@ -173,7 +174,7 @@ function startUi(ctx, eng) {
     const D = (km) => C.dist(km, settings.get('distUnit'));
     if (ui.onVisible) ui.onVisible((name, on) => { if (name === 'MAIN') eng.setVisible(on); });
     if (ui.isVisible && ui.isVisible('MAIN')) eng.setVisible(true);
-    const pct = (x) => (isNum(x) ? G.fmt(x * 100, 0) + ' %' : '--');
+    const pct = (x) => (isNum(x) ? F(x * 100, 0) + ' %' : '--');
     const effColor = (t, e) => (!isNum(e) ? t.dim : e >= 0.65 ? U.GO : e >= 0.45 ? '#c8d0dc' : t.warn);
     /** Range the energy back added at this consumption: back / ((out - back) / km). */
     const gained = (s) => (s && s.km > 0.5 && s.out > s.in ? s.in / ((s.out - s.in) / s.km) : null);
@@ -185,61 +186,61 @@ function startUi(ctx, eng) {
 
     function drawLive(cv, t, v) {
         const o = v.st.open, s = o ? tripSummary(o) : v.st.trips[v.st.trips.length - 1];
-        const r = G.panel(cv, t, 24, 44, 820, 468, o ? 'This drive' : s ? 'Last drive  ' + C.when(s.t0) : 'This drive');
+        const r = G.panel(cv, t, 24, 44, 820, 468, o ? 'Diese Fahrt' : s ? 'Letzte Fahrt  ' + C.when(s.t0) : 'Diese Fahrt');
         const kw = v.kw;
-        G.bar(cv, t, r.x + 24, r.y + 64, r.w - 48, 70, { min: -150, max: 250, origin: 0, value: isNum(kw) ? kw : null, label: isNum(kw) && kw < 0 ? 'Recuperating' : 'Battery power',
+        G.bar(cv, t, r.x + 24, r.y + 64, r.w - 48, 70, { min: -150, max: 250, origin: 0, value: isNum(kw) ? kw : null, label: isNum(kw) && kw < 0 ? 'Rekuperation' : 'Akkuleistung',
             unit: 'kW', decimals: 0, color: isNum(kw) && kw < 0 ? U.GO : null, step: 50 });
-        if (!s) { U.note(cv, t, r.x, r.y + 140, r.w, r.h - 140, v.link ? 'Drive off: the drive is recorded by itself' : 'Waiting for the battery unit'); }
+        if (!s) { U.note(cv, t, r.x, r.y + 140, r.w, r.h - 140, v.link ? 'Losfahren: Die Fahrt wird von selbst aufgezeichnet' : 'Warte auf das Batteriesteuergerät'); }
         else {
             const g = gained(s);
-            stat(cv, t, r.x + 24, r.y + 200, 'Driven', G.fmt(D(s.km), 1), dU());
-            stat(cv, t, r.x + 290, r.y + 200, 'Used', G.fmt(s.out, 2), 'kWh');
-            stat(cv, t, r.x + 560, r.y + 200, 'Recovered', G.fmt(s.in, 2), 'kWh', U.GO);
-            stat(cv, t, r.x + 24, r.y + 330, 'Share', isNum(s.in) && s.out > 0 ? G.fmt(s.in / s.out * 100, 0) : '--', '%', U.GO);
-            stat(cv, t, r.x + 290, r.y + 330, 'Range added', isNum(g) ? G.fmt(D(g), 1) : '--', dU());
-            stat(cv, t, r.x + 560, r.y + 330, 'Stops recovered', isNum(s.eff) ? G.fmt(s.eff * 100, 0) : '--', '%', effColor(t, s.eff));
-            cv.text('most at once ' + G.fmt(s.peak, 0) + ' kW' + (s.mode ? '   mostly ' + (MODE_LABEL[s.mode] || s.mode) : '') + '   ' + s.stops + ' braking events', r.x + 24, r.y + r.h - 18, 18, t.dim);
+            stat(cv, t, r.x + 24, r.y + 200, 'Gefahren', F(D(s.km), 1), dU());
+            stat(cv, t, r.x + 290, r.y + 200, 'Verbraucht', F(s.out, 2), 'kWh');
+            stat(cv, t, r.x + 560, r.y + 200, 'Zurück', F(s.in, 2), 'kWh', U.GO);
+            stat(cv, t, r.x + 24, r.y + 330, 'Anteil', isNum(s.in) && s.out > 0 ? F(s.in / s.out * 100, 0) : '--', '%', U.GO);
+            stat(cv, t, r.x + 290, r.y + 330, 'Reichweite +', isNum(g) ? F(D(g), 1) : '--', dU());
+            stat(cv, t, r.x + 560, r.y + 330, 'Bremsungen zurück', isNum(s.eff) ? F(s.eff * 100, 0) : '--', '%', effColor(t, s.eff));
+            cv.text('höchstens ' + F(s.peak, 0) + ' kW auf einmal' + (s.mode ? '   meist ' + (MODE_LABEL[s.mode] || s.mode) : '') + '   ' + s.stops + (s.stops === 1 ? ' Bremsung' : ' Bremsungen'), r.x + 24, r.y + r.h - 18, 18, t.dim);
         }
-        const rr = G.panel(cv, t, 868, 44, 708, 468, 'Last braking');
+        const rr = G.panel(cv, t, 868, 44, 708, 468, 'Letzte Bremsungen');
         const ev = v.st.events.slice(-8).reverse();
-        G.table(cv, t, rr.x + 24, rr.y + 64, rr.w - 48, [{ label: 'When', w: 110 }, { label: 'km/h', w: 140 }, { label: 'm/s²', w: 90, align: 'right' },
-            { label: 'Back', w: 120, align: 'right' }, { label: 'Recovered', w: 200, align: 'right' }],
-        ev.map((e) => [C.when(e.t), e.v0 + ' -> ' + e.v1, G.fmt(e.decel, 1), G.fmt(e.kwh * 1000, 0) + ' Wh', { text: isNum(e.eff) ? pct(e.eff) : 'downhill', color: effColor(t, e.eff) }]),
-        { rowH: 44, size: 22, empty: 'No braking yet' });
+        G.table(cv, t, rr.x + 24, rr.y + 64, rr.w - 48, [{ label: 'Wann', w: 110 }, { label: 'km/h', w: 140 }, { label: 'm/s²', w: 90, align: 'right' },
+            { label: 'Zurück', w: 120, align: 'right' }, { label: 'Anteil', w: 200, align: 'right' }],
+        ev.map((e) => [C.when(e.t), e.v0 + ' -> ' + e.v1, F(e.decel, 1), F(e.kwh * 1000, 0) + ' Wh', { text: isNum(e.eff) ? pct(e.eff) : 'bergab', color: effColor(t, e.eff) }]),
+        { rowH: 44, size: 22, empty: 'Noch keine Bremsung' });
     }
 
     function drawStops(cv, t, v) {
         const ev = v.st.events, bands = byStrength(ev);
-        const r = G.panel(cv, t, 24, 44, 640, 468, 'Recovered by braking strength');
+        const r = G.panel(cv, t, 24, 44, 640, 468, 'Zurück nach Bremsstärke');
         bands.forEach((b, i) => {
             const y = r.y + 76 + i * 92;
             G.bar(cv, t, r.x + 24, y, r.w - 48, 70, { min: 0, max: 100, value: isNum(b.eff) ? b.eff * 100 : null, unit: '%', decimals: 0, step: 25,
-                label: b.label + '  ' + (b.hi < 99 ? b.lo + '-' + b.hi : 'over ' + b.lo) + ' m/s²  (' + b.n + ')', color: effColor(t, b.eff) });
+                label: b.label + '  ' + (b.hi < 99 ? b.lo + '-' + b.hi : 'über ' + b.lo) + ' m/s²  (' + b.n + ')', color: effColor(t, b.eff) });
         });
-        const rr = G.panel(cv, t, 688, 44, 888, 468, 'Every stop: recovered against braking strength');
+        const rr = G.panel(cv, t, 688, 44, 888, 468, 'Jede Bremsung: Anteil zurück über der Bremsstärke');
         const pts = ev.filter((e) => isNum(e.eff) && isNum(e.decel));
         const ch = U.chart(cv, t, rr.x + 16, rr.y + 56, rr.w - 32, rr.h - 140, { xMin: 0, xMax: 4, xStep: 1, yMin: 0, yMax: 100, yStep: 25, xUnit: 'm/s²', yUnit: '%', series: [] });
         pts.forEach((e) => cv.circle(ch.X(Math.min(4, e.decel)), ch.Y(Math.min(100, e.eff * 100)), 5, U.withAlpha(effColor(t, e.eff), 0.8)));
-        if (!pts.length) U.note(cv, t, rr.x, rr.y, rr.w, rr.h - 60, 'No stops measured yet');
+        if (!pts.length) U.note(cv, t, rr.x, rr.y, rr.w, rr.h - 60, 'Noch keine Bremsung gemessen');
         const g = bands[0], h = bands.slice(2).filter((b) => b.n).reduce((a, b) => (a && a.n > b.n ? a : b), null) || bands[1];
         const tip = isNum(g.eff) && h && isNum(h.eff) && g.eff - h.eff > 0.08
-            ? 'Gentle braking brought back ' + pct(g.eff) + ', harder braking ' + pct(h.eff) + ': braking earlier and lighter saves energy.'
-            : 'Each dot is one stop or slow-down. The rest went to the friction brakes and the drivetrain.';
+            ? 'Sanftes Bremsen brachte ' + pct(g.eff) + ' zurück, kräftiges ' + pct(h.eff) + ': früher und leichter bremsen spart Energie.'
+            : 'Jeder Punkt ist eine Bremsung. Der Rest ging an die Reibungsbremsen und den Antrieb.';
         cv.text(tip, rr.x + 24, rr.y + rr.h - 40, 20, t.text);
     }
 
     function drawTrips(cv, t, v) {
         const list = v.st.trips.slice().reverse(), T = v.st.total;
         const share = T.out > 0 ? T.in / T.out : null, g = T.km > 1 && T.out > T.in ? T.in / ((T.out - T.in) / T.km) : null;
-        const r = G.panel(cv, t, 24, 44, 1552, 468, list.length ? 'All drives: ' + G.fmt(D(T.km), 0) + ' ' + dU() + '   recovered ' + G.fmt(T.in, 1) + ' kWh (' + pct(share) + ')   about ' + G.fmt(D(g), 0) + ' ' + dU() + ' of range' : 'Drives');
+        const r = G.panel(cv, t, 24, 44, 1552, 468, list.length ? 'Alle Fahrten: ' + F(D(T.km), 0) + ' ' + dU() + '   zurück ' + F(T.in, 1) + ' kWh (' + pct(share) + ')   etwa ' + F(D(g), 0) + ' ' + dU() + ' Reichweite' : 'Fahrten');
         const rows = Math.floor((r.h - 100) / 40);
-        G.table(cv, t, r.x + 24, r.y + 64, r.w - 48, [{ label: 'When', w: 200 }, { label: 'Distance', w: 160, align: 'right' }, { label: 'Used', w: 170, align: 'right' },
-            { label: 'Recovered', w: 190, align: 'right' }, { label: 'Share', w: 130, align: 'right' }, { label: 'Range added', w: 190, align: 'right' },
-            { label: 'Most at once', w: 180, align: 'right' }, { label: 'Stops recovered', w: 240, align: 'right' }],
-        list.slice(0, rows).map((s) => [C.when(s.t0), G.fmt(D(s.km), 1) + ' ' + dU(), G.fmt(s.out, 2) + ' kWh', { text: G.fmt(s.in, 2) + ' kWh', color: U.GO },
-            pct(s.out > 0 ? s.in / s.out : null), isNum(gained(s)) ? G.fmt(D(gained(s)), 1) + ' ' + dU() : '--', G.fmt(s.peak, 0) + ' kW',
+        G.table(cv, t, r.x + 24, r.y + 64, r.w - 48, [{ label: 'Wann', w: 200 }, { label: 'Strecke', w: 160, align: 'right' }, { label: 'Verbraucht', w: 170, align: 'right' },
+            { label: 'Zurück', w: 190, align: 'right' }, { label: 'Anteil', w: 130, align: 'right' }, { label: 'Reichweite +', w: 190, align: 'right' },
+            { label: 'Höchstens', w: 180, align: 'right' }, { label: 'Bremsungen zurück', w: 240, align: 'right' }],
+        list.slice(0, rows).map((s) => [C.when(s.t0), F(D(s.km), 1) + ' ' + dU(), F(s.out, 2) + ' kWh', { text: F(s.in, 2) + ' kWh', color: U.GO },
+            pct(s.out > 0 ? s.in / s.out : null), isNum(gained(s)) ? F(D(gained(s)), 1) + ' ' + dU() : '--', F(s.peak, 0) + ' kW',
             { text: pct(s.eff) + '  (' + s.stops + ')', color: effColor(t, s.eff) }]),
-        { rowH: 40, size: 22, empty: 'No drive recorded yet' });
+        { rowH: 40, size: 22, empty: 'Noch keine Fahrt aufgezeichnet' });
     }
 
     function render() {
@@ -247,8 +248,8 @@ function startUi(ctx, eng) {
         if (p === 'live') drawLive(cv, t, v);
         else if (p === 'stops') drawStops(cv, t, v);
         else if (p === 'trips') drawTrips(cv, t, v);
-        else U.diagPage(cv, t, eng.hv, eng.live, [['speed', G.fmt(eng.live.speed, 1) + ' km/h'], ['driving mode', String(eng.live.modeRaw)], ['vehicle state', String(eng.live.cond)]]);
-        pg.header(cv, t, [U.demoBadge(v.demo), isNum(v.kw) && v.kw < -3 && { text: 'RECUPERATING', color: U.GO }]);
+        else U.diagPage(cv, t, eng.hv, eng.live, [['Tempo', F(eng.live.speed, 1) + ' km/h'], ['Fahrmodus', String(eng.live.modeRaw)], ['Fahrzeugzustand', String(eng.live.cond)]]);
+        pg.header(cv, t, [U.demoBadge(v.demo), isNum(v.kw) && v.kw < -3 && { text: 'REKUPERIERT', color: U.GO }]);
         return ui.image('MAIN_GFX', cv);
     }
     ctx.loop('MAIN', 4, render);

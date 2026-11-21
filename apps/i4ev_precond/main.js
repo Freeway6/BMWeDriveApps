@@ -28,7 +28,7 @@ const W = 1600, H = 520;
 const GRID = '/tmp/i4ev-charge-grid.json';
 const BG_MS = 60000, SHOWN_MS = 10000;
 const KEEP_H = 6;
-const NAMES = { now: 'Now', plan: 'Plan', hist: 'History', diag: 'Diagnostics' };
+const NAMES = { now: 'Jetzt', plan: 'Planen', hist: 'Verlauf', diag: 'Diagnose' };
 
 /** °C per minute: the slope of a line through [t ms, T] points (null with too few, or under 3 minutes). */
 function slope(pts) {
@@ -41,13 +41,13 @@ function slope(pts) {
 
 /** The state of the coldest cell for fast charging: [label, theme colour key, advice]. */
 function stateOf(T, warmAt) {
-    if (!isNum(T)) return ['NO READING', 'dim', ''];
-    if (T < 10) return ['COLD', 'crit', 'DC charging will be slow'];
-    if (T < warmAt - 5) return ['COOL', 'warn', 'DC charging will be reduced'];
-    if (T < warmAt) return ['NEARLY WARM', 'accent', 'almost full DC power'];
-    if (T <= 38) return ['READY', 'go', 'full DC power'];
-    if (T <= 45) return ['WARM', 'warn', 'full power, the cooling works hard'];
-    return ['HOT', 'crit', 'DC power reduced until it cools'];
+    if (!isNum(T)) return ['KEIN WERT', 'dim', ''];
+    if (T < 10) return ['KALT', 'crit', 'DC-Laden wird langsam'];
+    if (T < warmAt - 5) return ['KÜHL', 'warn', 'DC-Laden wird gedrosselt'];
+    if (T < warmAt) return ['FAST WARM', 'accent', 'fast volle DC-Leistung'];
+    if (T <= 38) return ['BEREIT', 'go', 'volle DC-Leistung'];
+    if (T <= 45) return ['WARM', 'warn', 'volle Leistung, die Kühlung arbeitet viel'];
+    return ['HEISS', 'crit', 'DC-Leistung gedrosselt, bis er abkühlt'];
 }
 
 function engine(env) {
@@ -146,12 +146,13 @@ function engine(env) {
 
 function startUi(ctx, eng) {
     const { ui, settings } = ctx;
+    const F = C.fmt;
     const pages = () => ['now', 'plan', 'hist'].concat(settings.get('diagPage') ? ['diag'] : []);
     const pg = U.pager(ctx, pages, NAMES, () => render());
     const tU = () => (settings.get('tempUnit') === 'f' ? '°F' : '°C');
     const T = (c) => C.temp(c, settings.get('tempUnit'));
-    const fmtT = (c, d) => (isNum(c) ? G.fmt(T(c), d || 0) + ' ' + tU() : '--');
-    const rateT = (r) => (isNum(r) ? (r > 0 ? '+' : '') + G.fmt(settings.get('tempUnit') === 'f' ? r * 1.8 : r, 2) + ' ' + tU() + '/min' : '--');
+    const fmtT = (c, d) => (isNum(c) ? F(T(c), d || 0) + ' ' + tU() : '--');
+    const rateT = (r) => (isNum(r) ? (r > 0 ? '+' : '') + F(settings.get('tempUnit') === 'f' ? r * 1.8 : r, 2) + ' ' + tU() + '/min' : '--');
     const opts = (v) => ({ battery: settings.get('battery'), grid: v.grid, charger: Number(settings.get('charger')) });
     ui.onClick('BTN_ACT', () => { eng.readNow(); return render(); });
     if (ui.onVisible) ui.onVisible((name, on) => { if (name === 'MAIN') eng.setVisible(on); });
@@ -174,77 +175,77 @@ function startUi(ctx, eng) {
     function drawNow(cv, t, v) {
         const warmAt = settings.get('warmAt'), c = v.cells, Tm = c ? c.min : null;
         const s = stateOf(Tm, warmAt);
-        const r = G.panel(cv, t, 24, 44, 760, 468, 'Battery cells');
+        const r = G.panel(cv, t, 24, 44, 760, 468, 'Akkuzellen');
         U.tag(cv, t, r.x + 24, r.y + 92, s[0], col(t, s[1]), 26);
         if (s[2]) cv.text(s[2], r.x + r.w - 24, r.y + 92, 22, t.dim, { align: 'right' });
-        U.big(cv, t, r.x + 24, r.y + 226, isNum(Tm) ? G.fmt(T(Tm), 1) : '--', tU(), 120, col(t, s[1]));
-        cv.text('COLDEST CELL' + (c && c.car ? '  (the car\'s own value)' : ''), r.x + 28, r.y + 258, 18, t.dim, { font: 'bold', spacing: 1.5 });
+        U.big(cv, t, r.x + 24, r.y + 226, isNum(Tm) ? F(T(Tm), 1) : '--', tU(), 120, col(t, s[1]));
+        cv.text('KÄLTESTE ZELLE' + (c && c.car ? '  (WERT DES AUTOS)' : ''), r.x + 28, r.y + 258, 18, t.dim, { font: 'bold', spacing: 1.5 });
         scale(cv, t, r.x + 24, r.y + 296, r.w - 48, c, warmAt);
         const rate = v.rate, toWarm = isNum(Tm) && isNum(rate) && rate > 0.05 && Tm < warmAt ? (warmAt - Tm) / rate : null;
         const rows = [
-            ['Highest cell', c ? fmtT(c.max, 1) : '--'],
-            ['Warming', isNum(rate) ? (rate > 0.05 ? rateT(rate) + (isNum(toWarm) ? '   ' + fmtT(warmAt) + ' in ' + C.dur(toWarm * 60000) : '') : rate < -0.05 ? 'cooling ' + rateT(rate) : 'not warming') : 'measuring (3 min)'],
-            ['Outside', fmtT(v.ambient)],
+            ['Wärmste Zelle', c ? fmtT(c.max, 1) : '--'],
+            ['Erwärmung', isNum(rate) ? (rate > 0.05 ? rateT(rate) + (isNum(toWarm) ? '   ' + fmtT(warmAt) + ' in ' + C.dur(toWarm * 60000) : '') : rate < -0.05 ? 'kühlt ab ' + rateT(rate) : 'keine') : 'wird gemessen (3 min)'],
+            ['Außen', fmtT(v.ambient)],
         ];
         rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 384 + i * 36, x[0], x[1]));
 
         // what DC charging gives now, and when warm
-        const rr = G.panel(cv, t, 808, 44, 768, 468, 'DC charging from ' + (isNum(v.soc) ? G.fmt(v.soc, 0) + ' %' : '--'));
+        const rr = G.panel(cv, t, 808, 44, 768, 468, 'DC-Laden ab ' + (isNum(v.soc) ? F(v.soc, 0) + ' %' : '--'));
         const target = Number(settings.get('target')), o = opts(v), warmT = Math.max(warmAt, 30);
         const kwNow = isNum(v.soc) && isNum(Tm) ? M.expectKw(v.soc, Tm, o) : null, kwWarm = isNum(v.soc) ? M.expectKw(v.soc, warmT, o) : null;
         const mNow = isNum(Tm) ? M.chargeMinutes(v.soc, target, Tm, o) : null, mWarm = M.chargeMinutes(v.soc, target, warmT, o);
-        cv.text('NOW', rr.x + 24, rr.y + 92, 20, t.dim, { font: 'bold', spacing: 1.5 });
+        cv.text('JETZT', rr.x + 24, rr.y + 92, 20, t.dim, { font: 'bold', spacing: 1.5 });
         cv.text('WARM', rr.x + 404, rr.y + 92, 20, t.dim, { font: 'bold', spacing: 1.5 });
-        U.big(cv, t, rr.x + 24, rr.y + 190, isNum(kwNow) ? G.fmt(kwNow, 0) : '--', 'kW', 96, col(t, s[1]));
-        U.big(cv, t, rr.x + 404, rr.y + 190, isNum(kwWarm) ? G.fmt(kwWarm, 0) : '--', 'kW', 96, U.GO);
+        U.big(cv, t, rr.x + 24, rr.y + 190, isNum(kwNow) ? F(kwNow, 0) : '--', 'kW', 96, col(t, s[1]));
+        U.big(cv, t, rr.x + 404, rr.y + 190, isNum(kwWarm) ? F(kwWarm, 0) : '--', 'kW', 96, U.GO);
         const lost = mNow && mWarm ? mNow.min - mWarm.min : null;
         const rows2 = [
-            ['To ' + target + ' % now', mNow ? C.dur(mNow.min * 60000) : '--'],
-            ['To ' + target + ' % warm', mWarm ? C.dur(mWarm.min * 60000) : '--'],
-            ['Cold costs', isNum(lost) ? (lost >= 1 ? C.dur(lost * 60000) : 'nothing') : '--'],
+            ['Bis ' + target + ' % jetzt', mNow ? C.dur(mNow.min * 60000) : '--'],
+            ['Bis ' + target + ' % warm', mWarm ? C.dur(mWarm.min * 60000) : '--'],
+            ['Kälte kostet', isNum(lost) ? (lost >= 1 ? C.dur(lost * 60000) : 'nichts') : '--'],
         ];
         rows2.forEach((x, i) => U.row(cv, t, rr.x + 24, rr.w - 48, rr.y + 250 + i * 40, x[0], x[1], i === 2 && lost >= 5 ? t.warn : null));
         // what to do
         const charging = isNum(v.kw) && v.kw < -1.2 && (!isNum(v.speed) || v.speed < 1);
-        const tip = charging ? 'Charging now: ' + G.fmt(-v.kw, 0) + ' kW into the battery'
-            : !isNum(Tm) ? (v.link ? 'Waiting for the battery unit' : 'No diagnostic link yet')
-                : Tm >= warmAt ? 'Ready for full power'
-                    : isNum(rate) && rate > 0.05 ? 'The battery is warming: keep the route guidance to the charger'
-                        : 'Start route guidance to a DC charger in BMW Maps:\nthe car warms the battery on the way';
+        const tip = charging ? 'Lädt gerade: ' + F(-v.kw, 0) + ' kW in den Akku'
+            : !isNum(Tm) ? (v.link ? 'Warte auf das Batteriesteuergerät' : 'Noch keine Diagnoseverbindung')
+                : Tm >= warmAt ? 'Bereit für volle Leistung'
+                    : isNum(rate) && rate > 0.05 ? 'Der Akku wird warm: Zielführung zur Ladesäule aktiv lassen'
+                        : 'Zielführung zu einer DC-Ladesäule in BMW Maps starten:\nDas Auto wärmt den Akku unterwegs vor';
         tip.split('\n').forEach((l, k) => cv.text(l, rr.x + 24, rr.y + 398 + k * 30, 22, charging || Tm >= warmAt ? U.GO : t.text));
-        cv.text(v.grid ? 'learned from your charges where known' : 'typical i4 curve (Charge Curve learns this car\'s)', rr.x + 24, rr.y + rr.h - 20, 16, t.dim);
+        cv.text(v.grid ? 'wo bekannt: aus deinen Ladungen gelernt' : 'typische i4-Kurve (Ladekurve lernt die deines Autos)', rr.x + 24, rr.y + rr.h - 20, 16, t.dim);
     }
 
     function drawPlan(cv, t, v) {
         const warmAt = settings.get('warmAt'), c = v.cells, Tm = c ? c.min : null, o = opts(v), target = Number(settings.get('target'));
-        const r = G.panel(cv, t, 24, 44, 900, 468, 'Expected DC power over charge level');
+        const r = G.panel(cv, t, 24, 44, 900, 468, 'Erwartete DC-Leistung');
         const curve = (temp) => { const pts = []; for (let q = 0; q <= 100; q += 2) pts.push([q, M.expectKw(q, temp, o)]); return pts; };
         const warmT = Math.max(warmAt, 30), now = isNum(Tm) ? curve(Tm) : [], warm = curve(warmT);
         const ch = U.chart(cv, t, r.x + 16, r.y + 60, r.w - 32, r.h - 76, {
             xMin: 0, xMax: 100, xStep: 10, yMin: 0, yMax: Math.max(100, Math.ceil(Math.max.apply(null, warm.map((p) => p[1])) / 50) * 50 + 10), xUnit: '%', yUnit: 'kW',
             series: [{ pts: warm, color: U.GO, width: 2.5, dash: true }, { pts: now, color: t.cold || '#5aa9ff', width: 3.5, fill: 0.12 }],
         });
-        if (isNum(v.soc)) { const x = ch.X(v.soc); cv.fillRect(x - 1, ch.py, 2, ch.ph, U.withAlpha('#ffffff', 0.5)); cv.text('now ' + G.fmt(v.soc, 0) + ' %', x + 6, ch.py + 18, 18, t.text); }
-        cv.fillRect(r.x + 500, r.y + 32, 26, 4, t.cold || '#5aa9ff'); cv.text('cells at ' + fmtT(Tm), r.x + 534, r.y + 40, 18, t.dim);
-        cv.fillRect(r.x + 700, r.y + 33, 26, 2, U.GO); cv.text('warm (' + fmtT(warmT) + ')', r.x + 734, r.y + 40, 18, t.dim);
+        if (isNum(v.soc)) { const x = ch.X(v.soc); cv.fillRect(x - 1, ch.py, 2, ch.ph, U.withAlpha('#ffffff', 0.5)); cv.text('jetzt ' + F(v.soc, 0) + ' %', x + 6, ch.py + 18, 18, t.text); }
+        cv.fillRect(r.x + 430, r.y + 32, 26, 4, t.cold || '#5aa9ff'); cv.text('Zellen bei ' + fmtT(Tm), r.x + 464, r.y + 40, 18, t.dim);
+        cv.fillRect(r.x + 660, r.y + 33, 26, 2, U.GO); cv.text('warm (' + fmtT(warmT) + ')', r.x + 694, r.y + 40, 18, t.dim);
 
         // arriving in 10 / 20 / 30 minutes at the warming rate now (the charge falling about 0.4 % a minute when driving)
-        const rr = G.panel(cv, t, 948, 44, 628, 468, 'Arriving in ...');
+        const rr = G.panel(cv, t, 948, 44, 628, 468, 'Ankunft in ...');
         const rate = isNum(v.rate) ? v.rate : 0, driving = isNum(v.speed) && v.speed > 5;
         const rows = [0, 10, 20, 30].map((m) => {
             const Ta = isNum(Tm) ? Math.min(Math.max(Tm, 35), Tm + rate * m) : null;
             const soc = isNum(v.soc) ? Math.max(3, v.soc - (driving ? 0.4 * m : 0)) : null;
             const kw = isNum(Ta) && isNum(soc) ? M.expectKw(soc, Ta, o) : null, mm = isNum(Ta) && isNum(soc) ? M.chargeMinutes(soc, target, Ta, o) : null;
-            return [m ? m + ' min' : 'now', fmtT(Ta), isNum(soc) ? G.fmt(soc, 0) + ' %' : '--', isNum(kw) ? G.fmt(kw, 0) + ' kW' : '--', mm ? C.dur(mm.min * 60000) : '--'];
+            return [m ? m + ' min' : 'jetzt', fmtT(Ta), isNum(soc) ? F(soc, 0) + ' %' : '--', isNum(kw) ? F(kw, 0) + ' kW' : '--', mm ? C.dur(mm.min * 60000) : '--'];
         });
-        G.table(cv, t, rr.x + 24, rr.y + 70, rr.w - 48, [{ label: 'Arrive', w: 110 }, { label: 'Cells', w: 110, align: 'right' }, { label: 'Charge', w: 100, align: 'right' },
-            { label: 'Power', w: 120, align: 'right' }, { label: 'To ' + target + ' %', w: 140, align: 'right' }], rows, { rowH: 52, size: 26 });
-        cv.text(rate > 0.05 ? 'at ' + rateT(rate) + ', as the cells warm now' : 'the cells are not warming now', rr.x + 24, rr.y + 360, 20, t.dim);
-        cv.text('Charging warms them as well (included).', rr.x + 24, rr.y + 392, 20, t.dim);
+        G.table(cv, t, rr.x + 24, rr.y + 70, rr.w - 48, [{ label: 'Ankunft', w: 110 }, { label: 'Zellen', w: 110, align: 'right' }, { label: 'Ladest.', w: 100, align: 'right' },
+            { label: 'Leistung', w: 120, align: 'right' }, { label: 'Bis ' + target + ' %', w: 140, align: 'right' }], rows, { rowH: 52, size: 26 });
+        cv.text(rate > 0.05 ? 'bei ' + rateT(rate) + ', wie sich die Zellen jetzt erwärmen' : 'die Zellen erwärmen sich gerade nicht', rr.x + 24, rr.y + 360, 20, t.dim);
+        cv.text('Das Laden wärmt sie zusätzlich (eingerechnet).', rr.x + 24, rr.y + 392, 20, t.dim);
     }
 
     function drawHist(cv, t, v) {
-        const r = G.panel(cv, t, 24, 44, 1552, 468, 'Cells and outside, last ' + KEEP_H + ' hours');
+        const r = G.panel(cv, t, 24, 44, 1552, 468, 'Zellen und außen, letzte ' + KEEP_H + ' Stunden');
         const h = v.hist || [], t1 = Date.now(), t0 = t1 - KEEP_H * 3600000;
         const X = (tt) => (tt - t1) / 3600000;
         const minS = h.filter((p) => isNum(p[1])).map((p) => [X(p[0]), T(p[1])]), maxS = h.filter((p) => isNum(p[2])).map((p) => [X(p[0]), T(p[2])]);
@@ -253,12 +254,12 @@ function startUi(ctx, eng) {
         const lo = all.length ? Math.floor(Math.min.apply(null, all) / 5) * 5 - 5 : 0;
         const hi = Math.max(all.length ? Math.ceil(Math.max.apply(null, all) / 5) * 5 + 5 : 40, Math.ceil(T(settings.get('warmAt')) / 5) * 5 + 5);
         U.chart(cv, t, r.x + 16, r.y + 60, r.w - 32, r.h - 76, {
-            xMin: X(t0), xMax: 0, xStep: 1, xFmt: (x) => (x === 0 ? 'now' : G.fmt(x, 0) + ' h'), yMin: lo, yMax: hi, yStep: 5, yUnit: tU(),
+            xMin: X(t0), xMax: 0, xStep: 1, xFmt: (x) => (x === 0 ? 'jetzt' : F(x, 0) + ' h'), yMin: lo, yMax: hi, yStep: 5, yUnit: tU(),
             series: [{ pts: amb, color: t.dim, width: 2, dash: true }, { pts: maxS, color: t.warn, width: 2 }, { pts: minS, color: t.cold || '#5aa9ff', width: 3 }],
-            marks: [{ y: T(settings.get('warmAt')), color: U.GO, label: 'warm enough' }],
-            empty: 'No readings yet: read every minute while the head unit is on',
+            marks: [{ y: T(settings.get('warmAt')), color: U.GO, label: 'warm genug' }],
+            empty: 'Noch keine Werte: gelesen wird jede Minute, solange die Headunit an ist',
         });
-        [['coldest cell', t.cold || '#5aa9ff'], ['highest cell', t.warn], ['outside', t.dim]].forEach((l, i) => { cv.fillRect(r.x + 560 + i * 220, r.y + 33, 26, 4, l[1]); cv.text(l[0], r.x + 594 + i * 220, r.y + 40, 18, t.dim); });
+        [['kälteste Zelle', t.cold || '#5aa9ff'], ['wärmste Zelle', t.warn], ['außen', t.dim]].forEach((l, i) => { cv.fillRect(r.x + 560 + i * 220, r.y + 33, 26, 4, l[1]); cv.text(l[0], r.x + 594 + i * 220, r.y + 40, 18, t.dim); });
     }
 
     function render() {
@@ -266,8 +267,8 @@ function startUi(ctx, eng) {
         if (p === 'now') drawNow(cv, t, v);
         else if (p === 'plan') drawPlan(cv, t, v);
         else if (p === 'hist') drawHist(cv, t, v);
-        else U.diagPage(cv, t, eng.hv, eng.live, [['learned grid', v.grid ? Object.keys(v.grid).length + ' cells' : 'none (Charge Curve not installed or nothing learned)'],
-            ['car battery temp', JSON.stringify(eng.live.batt)], ['vehicle state', String(eng.live.cond)]]);
+        else U.diagPage(cv, t, eng.hv, eng.live, [['gelernte Felder', v.grid ? String(Object.keys(v.grid).length) : 'keine (Ladekurve nicht installiert oder noch nichts gelernt)'],
+            ['Akkutemp. des Autos', JSON.stringify(eng.live.batt)], ['Fahrzeugzustand', String(eng.live.cond)]]);
         const st = stateOf(v.cells ? v.cells.min : null, settings.get('warmAt'));
         pg.header(cv, t, [U.demoBadge(v.demo), v.cells && { text: st[0], color: col(t, st[1]) }]);
         return ui.image('MAIN_GFX', cv);

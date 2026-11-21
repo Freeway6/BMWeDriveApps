@@ -10,7 +10,7 @@
       "args": ["{id}"],
       "sdk": "oap-sdk",
       "output": "dist/{id}@{version}.tgz",
-      "shared": ["lib", "kit/runtime", "kit/platform", "kit/tools/build.py", "kit/tools/pack_data.py", "kit/tools/localize.py",
+      "shared": ["lib", "i18n", "kit/runtime", "kit/platform", "kit/tools/build.py", "kit/tools/pack_data.py", "kit/tools/localize.py",
         "kit/tools/locale-revisions.json", "kit/tools/oapgen", "oap-sdk"]
     }
   }

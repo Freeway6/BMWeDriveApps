@@ -1,18 +1,25 @@
 {
   "id": "i4ev_charge",
-  "title": "Charge Curve",
-  "description": "Records every charge while the head unit is on: power over charge level, cell temperature, energy, time per 10 % and cost, compared with your best charge; learns what this car really takes at each charge and temperature (Precondition uses it)",
-  "version": "0.1.0",
+  "title": "Ladekurve",
+  "description": "Zeichnet jede Ladung auf, solange die Headunit an ist: Leistung über dem Ladestand, Zelltemperatur, Energie, Zeit je 10 % und Kosten, verglichen mit deiner besten Ladung; lernt, was dein Auto bei welchem Ladestand und welcher Temperatur wirklich lädt (die Vorkonditionierung nutzt das)",
+  "version": "0.2.0",
   "autostart": true,
   "vendor": "custom",
   "loggingId": "I4CH",
   "iconGlyph": "battery",
-  "mguHmi": ["ID7", "ID8"],
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
   "signals": {
     "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
       "_instances": "SystemFunctionsInternalTasuInst1",
-      "_methods": ["sendTasuRequest"],
-      "_broadcasts": ["sendTasuResponse"]
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
     },
     "de.bmw.infotainment.vehicle.Vehicle2": {
       "statusCarSpeed2": "rs"
@@ -37,35 +44,284 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "Charge Curve",
+      "title": "Ladekurve",
       "buttons": [
-        ["BTN_ACT", "Next charge"],
-        ["BTN_PIN", "Pin as reference"],
-        ["BTN_PAGE", "Next page"],
-        ["BTN_SETTINGS", "Settings"]
+        [
+          "BTN_ACT",
+          "Nächste Ladung"
+        ],
+        [
+          "BTN_PIN",
+          "Als Referenz merken"
+        ],
+        [
+          "BTN_PAGE",
+          "Nächste Seite"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Einstellungen"
+        ]
       ]
     }
   ],
   "settings": [
-    { "key": "target", "label": "Time to charge level", "type": "choice", "default": "80",
-      "options": [["80", "80 %"], ["90", "90 %"], ["100", "100 %"]] },
-    { "key": "sample", "label": "Read while charging every", "type": "number", "unit": "s", "default": 2, "steps": [2, 5, 10] },
-    { "key": "priceDc", "label": "DC charging price", "type": "number", "unit": "EUR/kWh", "default": 0.59,
-      "steps": [0, 0.29, 0.34, 0.39, 0.44, 0.49, 0.52, 0.54, 0.57, 0.59, 0.62, 0.64, 0.69, 0.74, 0.79, 0.84, 0.89] },
-    { "key": "priceAc", "label": "AC charging price", "type": "number", "unit": "EUR/kWh", "default": 0.3,
-      "steps": [0, 0.1, 0.15, 0.2, 0.25, 0.28, 0.3, 0.32, 0.35, 0.39, 0.44, 0.49, 0.54, 0.59] },
-    { "key": "logAc", "label": "Record AC charges too", "type": "bool", "default": true },
-    { "key": "battery", "label": "Battery", "type": "choice", "default": "83.9",
-      "options": [["83.9", "83.9 kWh (eDrive40, xDrive40, M50)"], ["70.2", "70.2 kWh (eDrive35)"]] },
-    { "key": "signMode", "label": "Battery current direction", "type": "choice", "default": "auto",
-      "options": [["auto", "Auto (learned)"], ["normal", "As in app.json"], ["reversed", "Reversed"]] },
-    { "key": "tempUnit", "label": "Temperature unit", "type": "choice", "default": "c", "options": [["c", "Celsius"], ["f", "Fahrenheit"]] },
-    { "key": "diagPage", "label": "Diagnostics page (UDS replies, signals)", "type": "bool", "default": false },
-    { "key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
-      "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]] },
-    { "key": "layout", "label": "Screen layout", "type": "choice", "default": "full", "options": [["full", "Full screen"], ["standard", "Standard"]] },
-    { "key": "renderer", "label": "Renderer", "type": "choice", "default": "auto", "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]] },
-    { "key": "demo", "label": "Demo data", "type": "choice", "default": "auto", "options": [["auto", "Auto"], ["on", "Always"], ["off", "Never"]] }
+    {
+      "key": "target",
+      "label": "Zeit bis Ladestand",
+      "type": "choice",
+      "default": "80",
+      "options": [
+        [
+          "80",
+          "80 %"
+        ],
+        [
+          "90",
+          "90 %"
+        ],
+        [
+          "100",
+          "100 %"
+        ]
+      ]
+    },
+    {
+      "key": "sample",
+      "label": "Beim Laden lesen alle",
+      "type": "number",
+      "unit": "s",
+      "default": 2,
+      "steps": [
+        2,
+        5,
+        10
+      ]
+    },
+    {
+      "key": "priceDc",
+      "label": "Preis DC-Laden",
+      "type": "number",
+      "unit": "€/kWh",
+      "default": 0.59,
+      "steps": [
+        0,
+        0.29,
+        0.34,
+        0.39,
+        0.44,
+        0.49,
+        0.52,
+        0.54,
+        0.57,
+        0.59,
+        0.62,
+        0.64,
+        0.69,
+        0.74,
+        0.79,
+        0.84,
+        0.89
+      ],
+      "labels": {
+        "0": "0 €/kWh",
+        "0.29": "0,29 €/kWh",
+        "0.34": "0,34 €/kWh",
+        "0.39": "0,39 €/kWh",
+        "0.44": "0,44 €/kWh",
+        "0.49": "0,49 €/kWh",
+        "0.52": "0,52 €/kWh",
+        "0.54": "0,54 €/kWh",
+        "0.57": "0,57 €/kWh",
+        "0.59": "0,59 €/kWh",
+        "0.62": "0,62 €/kWh",
+        "0.64": "0,64 €/kWh",
+        "0.69": "0,69 €/kWh",
+        "0.74": "0,74 €/kWh",
+        "0.79": "0,79 €/kWh",
+        "0.84": "0,84 €/kWh",
+        "0.89": "0,89 €/kWh"
+      }
+    },
+    {
+      "key": "priceAc",
+      "label": "Preis AC-Laden",
+      "type": "number",
+      "unit": "€/kWh",
+      "default": 0.3,
+      "steps": [
+        0,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.28,
+        0.3,
+        0.32,
+        0.35,
+        0.39,
+        0.44,
+        0.49,
+        0.54,
+        0.59
+      ],
+      "labels": {
+        "0": "0 €/kWh",
+        "0.1": "0,1 €/kWh",
+        "0.15": "0,15 €/kWh",
+        "0.2": "0,2 €/kWh",
+        "0.25": "0,25 €/kWh",
+        "0.28": "0,28 €/kWh",
+        "0.3": "0,3 €/kWh",
+        "0.32": "0,32 €/kWh",
+        "0.35": "0,35 €/kWh",
+        "0.39": "0,39 €/kWh",
+        "0.44": "0,44 €/kWh",
+        "0.49": "0,49 €/kWh",
+        "0.54": "0,54 €/kWh",
+        "0.59": "0,59 €/kWh"
+      }
+    },
+    {
+      "key": "logAc",
+      "label": "AC-Ladungen auch aufzeichnen",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "battery",
+      "label": "Akku",
+      "type": "choice",
+      "default": "83.9",
+      "options": [
+        [
+          "83.9",
+          "83,9 kWh (eDrive40, xDrive40, M50)"
+        ],
+        [
+          "70.2",
+          "70,2 kWh (eDrive35)"
+        ]
+      ]
+    },
+    {
+      "key": "signMode",
+      "label": "Stromrichtung des Akkus",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch (gelernt)"
+        ],
+        [
+          "normal",
+          "Wie in app.json"
+        ],
+        [
+          "reversed",
+          "Umgekehrt"
+        ]
+      ]
+    },
+    {
+      "key": "tempUnit",
+      "label": "Temperatureinheit",
+      "type": "choice",
+      "default": "c",
+      "options": [
+        [
+          "c",
+          "Celsius"
+        ],
+        [
+          "f",
+          "Fahrenheit"
+        ]
+      ]
+    },
+    {
+      "key": "diagPage",
+      "label": "Diagnoseseite (UDS-Antworten, Signale)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "theme",
+      "label": "Farbschema",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Rot"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Eisweiß"
+        ],
+        [
+          "amber",
+          "Nacht-Bernstein"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Bildschirmaufteilung",
+      "type": "choice",
+      "default": "full",
+      "options": [
+        [
+          "full",
+          "Vollbild"
+        ],
+        [
+          "standard",
+          "Standard"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Darstellung",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU, 60 Bilder/s (Standard)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Demodaten",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch"
+        ],
+        [
+          "on",
+          "Immer"
+        ],
+        [
+          "off",
+          "Nie"
+        ]
+      ]
+    }
   ],
   "config": {
     "hv": {

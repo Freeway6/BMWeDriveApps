@@ -26,7 +26,7 @@ const U = require('./ev_ui');
 const { isNum } = C;
 const W = 1600, H = 520;
 const MAX_SLICES = 720;          // the drive going on (about 2 hours of 10 s readings)
-const NAMES = { coach: 'Now', speed: 'Speed', cond: 'Conditions', trips: 'Drives', diag: 'Diagnostics' };
+const NAMES = { coach: 'Jetzt', speed: 'Tempo', cond: 'Bedingungen', trips: 'Fahrten', diag: 'Diagnose' };
 
 function recorder(st, opts) {
     const coach = new Coach(st);
@@ -169,6 +169,7 @@ function engine(env) {
 
 function startUi(ctx, eng) {
     const { ui, settings } = ctx;
+    const F = C.fmt;
     const pages = () => ['coach', 'speed', 'cond', 'trips'].concat(settings.get('diagPage') ? ['diag'] : []);
     const pg = U.pager(ctx, pages, NAMES, () => render());
     const unit = () => settings.get('distUnit');
@@ -176,12 +177,12 @@ function startUi(ctx, eng) {
     const D = (km) => C.dist(km, unit());
     const cU = () => C.consUnit(unit());
     const CO = (k) => C.cons(k, unit());
-    const fmtC = (k) => (isNum(CO(k)) ? G.fmt(CO(k), unit() === 'mi' ? 2 : 1) : '--');
+    const fmtC = (k) => (isNum(CO(k)) ? F(CO(k), unit() === 'mi' ? 2 : 1) : '--');
     const tU = () => (settings.get('tempUnit') === 'f' ? '°F' : '°C');
-    const fmtT = (c) => (isNum(c) ? G.fmt(C.temp(c, settings.get('tempUnit')), 0) + ' ' + tU() : '--');
+    const fmtT = (c) => (isNum(c) ? F(C.temp(c, settings.get('tempUnit')), 0) + ' ' + tU() : '--');
     if (ui.onVisible) ui.onVisible((name, on) => { if (name === 'MAIN') eng.setVisible(on); });
     if (ui.isVisible && ui.isVisible('MAIN')) eng.setVisible(true);
-    const vsText = (x) => (!isNum(x) ? '' : Math.abs(x) < 0.03 ? 'as usual' : G.fmt(Math.abs(x) * 100, 0) + ' % ' + (x < 0 ? 'less' : 'more') + ' than usual');
+    const vsText = (x) => (!isNum(x) ? '' : Math.abs(x) < 0.03 ? 'wie üblich' : F(Math.abs(x) * 100, 0) + ' % ' + (x < 0 ? 'weniger' : 'mehr') + ' als üblich');
     const vsColor = (t, x) => (!isNum(x) ? t.dim : x <= -0.03 ? U.GO : x >= 0.08 ? t.warn : t.text);
 
     /** kWh/100 km along the drive over windows of 1 km: { own: [[km, cons]], usual: [[km, cons as usual]] }. */
@@ -205,78 +206,78 @@ function startUi(ctx, eng) {
         const r = v.r, o = r.trips.open, win = settings.get('window') || 5;
         const w = lastKm(r.slices, win), cons = w.km >= Math.min(1, win) ? w.kwh / w.km * 100 : null;
         const cmp = r.coach.compare(w.slices), exp = cmp ? cmp.exp : null, vs = cmp && cmp.exp > 0 && isNum(cons) ? cmp.own / cmp.exp - 1 : null;
-        const p = G.panel(cv, t, 24, 44, 760, 468, 'Now: the last ' + G.fmt(D(win), 0) + ' ' + dU());
-        U.tag(cv, t, p.x + 24, p.y + 92, !o ? 'NOT DRIVING' : isNum(vs) ? vsText(vs).toUpperCase() : 'LEARNING YOUR CAR', vsColor(t, vs), 24);
+        const p = G.panel(cv, t, 24, 44, 760, 468, 'Jetzt: die letzten ' + F(D(win), 0) + ' ' + dU());
+        U.tag(cv, t, p.x + 24, p.y + 92, !o ? 'KEINE FAHRT' : isNum(vs) ? vsText(vs).toUpperCase() : 'LERNT DEIN AUTO', vsColor(t, vs), 24);
         U.big(cv, t, p.x + 24, p.y + 226, fmtC(cons), cU(), 120, isNum(vs) ? vsColor(t, vs) : t.text);
         const usualNow = isNum(exp) && w.km > 0 ? exp / w.km * 100 : null;
         const tripCons = o && o.km > 0.5 ? o.kwh / o.km * 100 : null;
         const rows = [
-            ['Usual at these speeds', isNum(usualNow) ? fmtC(usualNow) + ' ' + cU() : 'learning'],
-            ['This drive', o ? G.fmt(D(o.km), 1) + ' ' + dU() + '   ' + G.fmt(o.kwh, 2) + ' kWh   ' + fmtC(tripCons) + ' ' + cU() : '--'],
-            ['Range at this rate', isNum(v.e) && isNum(cons) && cons > 1 ? G.fmt(D(v.e / cons * 100), 0) + ' ' + dU() + '   (' + G.fmt(v.e, 1) + ' kWh left)' : '--'],
-            ['Outside   mode', fmtT(v.amb) + '   ' + (v.mode ? MODE_LABEL[v.mode] || v.mode : '--')],
+            ['Üblich bei diesem Tempo', isNum(usualNow) ? fmtC(usualNow) + ' ' + cU() : 'lernt noch'],
+            ['Diese Fahrt', o ? F(D(o.km), 1) + ' ' + dU() + '   ' + F(o.kwh, 2) + ' kWh   ' + fmtC(tripCons) + ' ' + cU() : '--'],
+            ['Reichweite so', isNum(v.e) && isNum(cons) && cons > 1 ? F(D(v.e / cons * 100), 0) + ' ' + dU() + '   (' + F(v.e, 1) + ' kWh übrig)' : '--'],
+            ['Außen   Modus', fmtT(v.amb) + '   ' + (v.mode ? MODE_LABEL[v.mode] || v.mode : '--')],
         ];
         rows.forEach((x, i) => U.row(cv, t, p.x + 24, p.w - 48, p.y + 300 + i * 42, x[0], x[1]));
-        const rr = G.panel(cv, t, 808, 44, 768, 468, o ? 'This drive, per ' + dU() : 'Drive');
+        const rr = G.panel(cv, t, 808, 44, 768, 468, o ? 'Diese Fahrt, je ' + dU() : 'Fahrt');
         const al = along(r.slices, r.coach), pts = al.own.map((q) => [D(q[0]), CO(q[1])]), usual = al.usual.map((q) => [D(q[0]), CO(q[1])]);
         const ys = pts.concat(usual).map((q) => q[1]).filter(isNum);
         U.chart(cv, t, rr.x + 16, rr.y + 60, rr.w - 32, rr.h - 76, {
             xMin: 0, xMax: Math.max(5, Math.ceil(pts.length ? pts[pts.length - 1][0] : 5)), yMin: 0, yMax: ys.length ? Math.ceil(Math.max.apply(null, ys) / 10) * 10 + 5 : 40,
             xUnit: dU(), yUnit: cU(), series: [{ pts: usual, color: t.dim, width: 2, dash: true }, { pts, color: U.GO, width: 3, fill: 0.12 }],
-            empty: o ? 'The first km' : 'Drive off: recorded by itself',
+            empty: o ? 'Der erste km' : 'Losfahren: wird von selbst aufgezeichnet',
         });
-        cv.fillRect(rr.x + 470, rr.y + 32, 26, 4, U.GO); cv.text('this drive', rr.x + 504, rr.y + 40, 18, t.dim);
-        cv.fillRect(rr.x + 610, rr.y + 33, 26, 2, t.dim); cv.text('usual', rr.x + 644, rr.y + 40, 18, t.dim);
+        cv.fillRect(rr.x + 440, rr.y + 32, 26, 4, U.GO); cv.text('diese Fahrt', rr.x + 474, rr.y + 40, 18, t.dim);
+        cv.fillRect(rr.x + 600, rr.y + 33, 26, 2, t.dim); cv.text('üblich', rr.x + 634, rr.y + 40, 18, t.dim);
     }
 
     function drawSpeed(cv, t, v) {
         const b = v.st.bins, c = v.r.coach;
-        const p = G.panel(cv, t, 24, 44, 1552, 468, 'Consumption by speed (km/h)');
+        const p = G.panel(cv, t, 24, 44, 1552, 468, 'Verbrauch nach Tempo (km/h)');
         const vals = b.speed.map((x) => c.cons(x));
         const tot = b.speed.reduce((a, x) => ({ km: a.km + x.km, kwh: a.kwh + x.kwh }), { km: 0, kwh: 0 });
         const avg = tot.km > 2 ? tot.kwh / tot.km * 100 : null;
         U.bars(cv, t, p.x + 24, p.y + 50, 1100, p.h - 70, b.speed.map((x, i) => ({ label: SPEED_LABELS[i], value: CO(vals[i]), text: fmtC(vals[i]),
-            sub: x.km >= 1 ? G.fmt(D(x.km), 0) + ' ' + dU() : '', color: i >= 5 ? 'warn' : i <= 1 ? 'cold' : U.GO })), { mark: CO(avg) });
+            sub: x.km >= 1 ? F(D(x.km), 0) + ' ' + dU() : '', color: i >= 5 ? 'warn' : i <= 1 ? 'cold' : U.GO })), { mark: CO(avg) });
         // out of town (from 90 km/h up): the biggest step between two speed bands with enough driven, what going one
         // band slower saves (in town the speed is not the choice)
         let best = null;
         for (let i = vals.length - 1; i >= 4; i--) if (isNum(vals[i]) && isNum(vals[i - 1]) && vals[i] > vals[i - 1] && (!best || vals[i] - vals[i - 1] > best.d)) best = { i, d: vals[i] - vals[i - 1] };
         const x = p.x + 1160;
         cv.text(cU(), x, p.y + 92, 20, t.dim, { font: 'bold' });
-        const lines = best ? ['At ' + SPEED_LABELS[best.i] + ' km/h this car takes', fmtC(vals[best.i]) + ', at ' + SPEED_LABELS[best.i - 1] + ' km/h ' + fmtC(vals[best.i - 1]) + ':',
-            G.fmt(best.d / vals[best.i] * 100, 0) + ' % less, about ' + G.fmt(best.d / vals[best.i] * 100, 0) + ' % more range.'] : ['Each bar fills in once', 'you have driven ' + G.fmt(D(2), 0) + ' ' + dU() + ' at that speed.'];
+        const lines = best ? ['Bei ' + SPEED_LABELS[best.i] + ' km/h braucht dein Auto', fmtC(vals[best.i]) + ', bei ' + SPEED_LABELS[best.i - 1] + ' km/h ' + fmtC(vals[best.i - 1]) + ':',
+            F(best.d / vals[best.i] * 100, 0) + ' % weniger, etwa ' + F(best.d / vals[best.i] * 100, 0) + ' % mehr Reichweite.'] : ['Jeder Balken füllt sich, sobald', 'du ' + F(D(2), 0) + ' ' + dU() + ' in diesem Tempo gefahren bist.'];
         lines.forEach((l, k) => cv.text(l, x, p.y + 150 + k * 34, 22, k === 0 && best ? t.text : t.text));
-        cv.text('Line: your average ' + fmtC(avg) + ' ' + cU(), x, p.y + 290, 20, t.dim);
-        if (isNum(b.stand.h) && b.stand.h > 0.05) cv.text('Standing (traffic, waiting): ' + G.fmt(b.stand.kwh / b.stand.h, 1) + ' kW', x, p.y + 324, 20, t.dim);
-        cv.text('Net energy: recuperation is counted in.', x, p.y + 358, 20, t.dim);
+        cv.text('Linie: dein Schnitt ' + fmtC(avg) + ' ' + cU(), x, p.y + 290, 20, t.dim);
+        if (isNum(b.stand.h) && b.stand.h > 0.05) cv.text('Im Stand (Stau, Warten): ' + F(b.stand.kwh / b.stand.h, 1) + ' kW', x, p.y + 324, 20, t.dim);
+        cv.text('Netto-Energie: Rekuperation ist eingerechnet.', x, p.y + 358, 20, t.dim);
     }
 
     function drawCond(cv, t, v) {
         const b = v.st.bins, c = v.r.coach;
-        const p = G.panel(cv, t, 24, 44, 900, 468, 'By outside temperature (' + tU() + ')');
+        const p = G.panel(cv, t, 24, 44, 900, 468, 'Nach Außentemperatur (' + tU() + ')');
         const tl = settings.get('tempUnit') === 'f' ? ['< 32', '32-50', '50-68', '68-86', '86+'] : TEMP_LABELS;
         U.bars(cv, t, p.x + 24, p.y + 50, p.w - 48, p.h - 70, b.temp.map((x, i) => ({ label: tl[i], value: CO(c.cons(x)), text: fmtC(c.cons(x)),
-            sub: x.km >= 1 ? G.fmt(D(x.km), 0) + ' ' + dU() : '', color: i <= 1 ? 'cold' : i >= 4 ? 'warn' : U.GO })));
-        const q = G.panel(cv, t, 948, 44, 628, 468, 'By mode and climate');
+            sub: x.km >= 1 ? F(D(x.km), 0) + ' ' + dU() : '', color: i <= 1 ? 'cold' : i >= 4 ? 'warn' : U.GO })));
+        const q = G.panel(cv, t, 948, 44, 628, 468, 'Nach Modus und Klima');
         const modes = ['eco', 'comfort', 'sport'].map((m) => ({ label: MODE_LABEL[m], value: CO(c.cons(b.mode[m])), text: fmtC(c.cons(b.mode[m])),
-            sub: b.mode[m] && b.mode[m].km >= 1 ? G.fmt(D(b.mode[m].km), 0) + ' ' + dU() : '', color: m === 'eco' ? U.GO : m === 'sport' ? 'warn' : 'cold' }));
-        const clim = [{ label: 'Climate on', value: CO(c.cons(b.climate.on)), text: fmtC(c.cons(b.climate.on)), sub: b.climate.on.km >= 1 ? G.fmt(D(b.climate.on.km), 0) + ' ' + dU() : '', color: 'warn' },
-            { label: 'Climate off', value: CO(c.cons(b.climate.off)), text: fmtC(c.cons(b.climate.off)), sub: b.climate.off.km >= 1 ? G.fmt(D(b.climate.off.km), 0) + ' ' + dU() : '', color: U.GO }];
+            sub: b.mode[m] && b.mode[m].km >= 1 ? F(D(b.mode[m].km), 0) + ' ' + dU() : '', color: m === 'eco' ? U.GO : m === 'sport' ? 'warn' : 'cold' }));
+        const clim = [{ label: 'Klima an', value: CO(c.cons(b.climate.on)), text: fmtC(c.cons(b.climate.on)), sub: b.climate.on.km >= 1 ? F(D(b.climate.on.km), 0) + ' ' + dU() : '', color: 'warn' },
+            { label: 'Klima aus', value: CO(c.cons(b.climate.off)), text: fmtC(c.cons(b.climate.off)), sub: b.climate.off.km >= 1 ? F(D(b.climate.off.km), 0) + ' ' + dU() : '', color: U.GO }];
         U.bars(cv, t, q.x + 24, q.y + 50, q.w - 48, q.h - 70, modes.concat(clim));
     }
 
     function drawTrips(cv, t, v) {
         const list = v.st.trips.slice().reverse();
         const tot = list.reduce((a, s) => ({ km: a.km + s.km, kwh: a.kwh + s.kwh }), { km: 0, kwh: 0 });
-        const p = G.panel(cv, t, 24, 44, 1552, 468, list.length ? list.length + ' drives   ' + G.fmt(D(tot.km), 0) + ' ' + dU() + '   ' + G.fmt(tot.kwh, 0) + ' kWh   ' + fmtC(tot.km > 0 ? tot.kwh / tot.km * 100 : null) + ' ' + cU() : 'Drives');
+        const p = G.panel(cv, t, 24, 44, 1552, 468, list.length ? list.length + ' Fahrten   ' + F(D(tot.km), 0) + ' ' + dU() + '   ' + F(tot.kwh, 0) + ' kWh   ' + fmtC(tot.km > 0 ? tot.kwh / tot.km * 100 : null) + ' ' + cU() : 'Fahrten');
         const rows = Math.floor((p.h - 100) / 40);
-        G.table(cv, t, p.x + 24, p.y + 64, p.w - 48, [{ label: 'When', w: 200 }, { label: 'Distance', w: 170, align: 'right' }, { label: 'Energy', w: 170, align: 'right' },
-            { label: cU(), w: 200, align: 'right' }, { label: 'Mean speed', w: 180, align: 'right' }, { label: 'Outside', w: 150, align: 'right' },
-            { label: 'Mode', w: 170, align: 'right' }, { label: 'Against usual', w: 260, align: 'right' }],
-        list.slice(0, rows).map((s) => [C.when(s.t0), G.fmt(D(s.km), 1) + ' ' + dU(), G.fmt(s.kwh, 2) + ' kWh', fmtC(s.cons),
-            isNum(s.v) ? G.fmt(D(s.v), 0) + ' ' + dU() + '/h' : '--', fmtT(s.amb), s.mode ? MODE_LABEL[s.mode] || s.mode : '--',
-            { text: isNum(s.vs) ? (s.vs > 0 ? '+' : '') + G.fmt(s.vs * 100, 0) + ' %' : 'learning', color: vsColor(t, s.vs) }]),
-        { rowH: 40, size: 22, empty: 'No drive recorded yet' });
+        G.table(cv, t, p.x + 24, p.y + 64, p.w - 48, [{ label: 'Wann', w: 200 }, { label: 'Strecke', w: 170, align: 'right' }, { label: 'Energie', w: 170, align: 'right' },
+            { label: cU(), w: 200, align: 'right' }, { label: 'Schnitt', w: 180, align: 'right' }, { label: 'Außen', w: 150, align: 'right' },
+            { label: 'Modus', w: 170, align: 'right' }, { label: 'Gegen üblich', w: 260, align: 'right' }],
+        list.slice(0, rows).map((s) => [C.when(s.t0), F(D(s.km), 1) + ' ' + dU(), F(s.kwh, 2) + ' kWh', fmtC(s.cons),
+            isNum(s.v) ? F(D(s.v), 0) + ' ' + dU() + '/h' : '--', fmtT(s.amb), s.mode ? MODE_LABEL[s.mode] || s.mode : '--',
+            { text: isNum(s.vs) ? (s.vs > 0 ? '+' : '') + F(s.vs * 100, 0) + ' %' : 'lernt noch', color: vsColor(t, s.vs) }]),
+        { rowH: 40, size: 22, empty: 'Noch keine Fahrt aufgezeichnet' });
     }
 
     function render() {
@@ -285,8 +286,8 @@ function startUi(ctx, eng) {
         else if (p === 'speed') drawSpeed(cv, t, v);
         else if (p === 'cond') drawCond(cv, t, v);
         else if (p === 'trips') drawTrips(cv, t, v);
-        else U.diagPage(cv, t, eng.hv, eng.live, [['energy now', G.fmt(v.e, 2) + ' kWh'], ['speed', G.fmt(eng.live.speed, 1) + ' km/h'], ['driving mode', String(eng.live.modeRaw)],
-            ['climate', String(eng.live.climate)], ['vehicle state', String(eng.live.cond)]]);
+        else U.diagPage(cv, t, eng.hv, eng.live, [['Energie jetzt', F(v.e, 2) + ' kWh'], ['Tempo', F(eng.live.speed, 1) + ' km/h'], ['Fahrmodus', String(eng.live.modeRaw)],
+            ['Klima', String(eng.live.climate)], ['Fahrzeugzustand', String(eng.live.cond)]]);
         pg.header(cv, t, [U.demoBadge(v.demo)]);
         return ui.image('MAIN_GFX', cv);
     }
