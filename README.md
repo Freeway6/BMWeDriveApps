@@ -36,10 +36,12 @@ und Skalierung pro App in `apps/<id>/app.json` unter `config.hv` anpassen (Vorla
 Voraussetzung: Der MGU Store ist auf der Headunit installiert. Dazu braucht man Root-SSH, siehe die
 [README des Stores](https://github.com/robertnisipeanu/mgu-store#requirements).
 
-1. Dieses Repository auf GitHub veröffentlichen (öffentlich, oder privat mit Token im Store).
-2. Im Auto: Store → Settings → **Add source** → `<owner>/<repo>` eingeben → den Branch `main` wählen.
-3. Im Store die Apps öffnen und **Install** tippen. Die Headunit baut sie selbst aus dem Quelltext; das BMW-SDK nimmt sie von einer Original-App im Auto.
-4. Auf iDrive 8 werden Installationen erst nach einem Neustart der Headunit wirksam: Settings → **Restart head unit**.
+1. Im Auto: Store → Settings → **Add source** → `Freeway6/BMWeDriveApps` eingeben → den Branch `main` wählen.
+   Ist das Repository privat, braucht der Store dafür einen Zugang (Settings → **Accounts**: *Sign in with GitHub*
+   oder ein Token mit Leserecht auf *Contents*).
+2. Im Store die Apps öffnen und **Install** tippen. Die Headunit baut sie selbst aus dem Quelltext; das BMW-SDK nimmt sie von einer Original-App im Auto.
+3. Auf iDrive 8 werden Installationen erst nach einem Neustart der Headunit wirksam: Settings → **Restart head unit**.
+4. Neue Commits auf `main` erscheinen im Store als Update (Installed → **Update**).
 
 Für eine Grafik mit 60 fps sorgt der Renderer, den der Store mitinstalliert. Ohne ihn zeichnen die Apps
 langsamer (PNG, etwa 2 Bilder/s).
