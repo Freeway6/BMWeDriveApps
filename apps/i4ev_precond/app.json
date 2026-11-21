@@ -1,0 +1,67 @@
+{
+  "id": "i4ev_precond",
+  "title": "Precondition",
+  "description": "Is the battery warm enough for fast charging? Cell temperature, how fast it is warming, the DC power and 10-80 % time to expect now and when warm, and what arriving in 10, 20 or 30 minutes would give (learned from Charge Curve's charges when installed)",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "I4PC",
+  "iconGlyph": "temp",
+  "mguHmi": ["ID7", "ID8"],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": ["sendTasuRequest"],
+      "_broadcasts": ["sendTasuResponse"]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell, and reads only while the head unit is on",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.drivingexcitement.Efficiencytainment2": {
+      "_optional": "the battery temperature the car sends itself (used when the battery unit's cell temperatures do not answer)",
+      "statusBatteryTemperature": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Precondition",
+      "buttons": [
+        ["BTN_ACT", "Read now"],
+        ["BTN_PAGE", "Next page"],
+        ["BTN_PREV", "Previous page"],
+        ["BTN_SETTINGS", "Settings"]
+      ]
+    }
+  ],
+  "settings": [
+    { "key": "charger", "label": "Fast charger", "type": "choice", "default": "300",
+      "options": [["50", "50 kW"], ["100", "100 kW"], ["150", "150 kW"], ["200", "200 kW"], ["300", "300 kW and more"]] },
+    { "key": "target", "label": "Charge to", "type": "choice", "default": "80", "options": [["80", "80 %"], ["90", "90 %"], ["100", "100 %"]] },
+    { "key": "warmAt", "label": "Warm enough at (coldest cell)", "type": "number", "unit": "°C", "default": 25, "steps": [20, 22, 25, 28, 30] },
+    { "key": "battery", "label": "Battery", "type": "choice", "default": "83.9",
+      "options": [["83.9", "83.9 kWh (eDrive40, xDrive40, M50)"], ["70.2", "70.2 kWh (eDrive35)"]] },
+    { "key": "tempUnit", "label": "Temperature unit", "type": "choice", "default": "c", "options": [["c", "Celsius"], ["f", "Fahrenheit"]] },
+    { "key": "battOffset", "label": "Car's own battery temperature: offset", "type": "number", "unit": "°C", "default": -50, "steps": [-60, -50, -40, 0],
+      "when": { "diagPage": true } },
+    { "key": "diagPage", "label": "Diagnostics page (UDS replies, signals)", "type": "bool", "default": false },
+    { "key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
+      "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]] },
+    { "key": "layout", "label": "Screen layout", "type": "choice", "default": "full", "options": [["full", "Full screen"], ["standard", "Standard"]] },
+    { "key": "renderer", "label": "Renderer", "type": "choice", "default": "auto", "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]] },
+    { "key": "demo", "label": "Demo data", "type": "choice", "default": "auto", "options": [["auto", "Auto"], ["on", "Always"], ["off", "Never"]] }
+  ],
+  "config": {
+    "hv": {
+      "comment": "UDS identifiers of the high-voltage battery: lib/ev_hv.js DEFAULTS (temp: DDC0 lowest, highest, average cell temperature). A key here replaces that list for this app."
+    }
+  }
+}

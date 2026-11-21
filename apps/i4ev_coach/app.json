@@ -1,0 +1,67 @@
+{
+  "id": "i4ev_coach",
+  "title": "Efficiency Coach",
+  "description": "Your real consumption from the battery's own energy: now against what this car usually takes at the same speeds, per drive, and how speed, outside temperature, driving mode and climate change it, with the range that is left at the way you drive now",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "I4EF",
+  "iconGlyph": "gauge",
+  "mguHmi": ["ID7", "ID8"],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": ["sendTasuRequest"],
+      "_broadcasts": ["sendTasuResponse"]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell, and reads only while a drive is on",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "_optional": "the driving mode (Sport, Personal, Efficient): no consumption per mode",
+      "statusFESVehicleDynamicSwitchHMI": "rs"
+    },
+    "de.bmw.infotainment.climate.climatemaster.ClimateMaster": {
+      "_optional": "climate on or off: no consumption with and without it",
+      "statusClimateSystemOn": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Efficiency Coach",
+      "buttons": [
+        ["BTN_PAGE", "Next page"],
+        ["BTN_PREV", "Previous page"],
+        ["BTN_SETTINGS", "Settings"]
+      ]
+    }
+  ],
+  "settings": [
+    { "key": "window", "label": "Consumption now: over the last", "type": "number", "unit": "km", "default": 5, "steps": [2, 5, 10] },
+    { "key": "distUnit", "label": "Distance unit", "type": "choice", "default": "km", "options": [["km", "km (kWh/100 km)"], ["mi", "miles (mi/kWh)"]] },
+    { "key": "tempUnit", "label": "Temperature unit", "type": "choice", "default": "c", "options": [["c", "Celsius"], ["f", "Fahrenheit"]] },
+    { "key": "battery", "label": "Battery (when the energy cannot be read)", "type": "choice", "default": "83.9",
+      "options": [["83.9", "83.9 kWh (80.7 usable)"], ["70.2", "70.2 kWh (67.1 usable)"]] },
+    { "key": "sample", "label": "Read the battery's energy every", "type": "number", "unit": "s", "default": 10, "steps": [5, 10, 20] },
+    { "key": "diagPage", "label": "Diagnostics page (UDS replies, signals)", "type": "bool", "default": false },
+    { "key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
+      "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]] },
+    { "key": "layout", "label": "Screen layout", "type": "choice", "default": "full", "options": [["full", "Full screen"], ["standard", "Standard"]] },
+    { "key": "renderer", "label": "Renderer", "type": "choice", "default": "auto", "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]] },
+    { "key": "demo", "label": "Demo data", "type": "choice", "default": "auto", "options": [["auto", "Auto"], ["on", "Always"], ["off", "Never"]] }
+  ],
+  "config": {
+    "hv": {
+      "comment": "UDS identifiers: lib/ev_hv.js DEFAULTS (energy E5C7: stored and usable kWh; soc E5CE when the energy does not answer). A key here replaces that list for this app."
+    }
+  }
+}
