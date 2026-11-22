@@ -27,7 +27,9 @@ Cloudflare nach einem Namen für die `workers.dev`-Subdomain. Prüfen:
 curl https://i4-live.<dein-name>.workers.dev/v1/health
 ```
 
-Die Antwort sollte `{"ok":true}` sein. Dann diese Adresse in `apps/i4ev_charge/app.json` unter
+Die Antwort sollte `{"ok":true}` sein. Ist es der erste Worker im Konto, legt Cloudflare dabei die
+`workers.dev`-Subdomain neu an; deren Zertifikat ist erst nach einigen Minuten fertig, bis dahin scheitert der
+Aufruf mit einem TLS-Fehler (`handshake failure`). Dann diese Adresse in `apps/i4ev_charge/app.json` unter
 `config.live.relay` eintragen und den Commit pushen; der Store bietet die Ladekurve dann als Update an (README im
 Hauptordner, Abschnitt „Live auf iPhone und Apple Watch“).
 

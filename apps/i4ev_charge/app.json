@@ -349,7 +349,7 @@
     },
     "live": {
       "comment": "The relay the head unit sends the charge to (relay/README.md): its address, e.g. https://i4-live.<name>.workers.dev. Empty: live is off. tls: fallback (the default: without a checked certificate when neither Node 8 nor lib/ev_roots.js know its root; the content stays end-to-end encrypted) or strict.",
-      "relay": "",
+      "relay": "https://i4-live.bmw-e75601.workers.dev",
       "tls": "fallback"
     }
   }
