@@ -1,0 +1,248 @@
+{
+  "id": "b58_coach",
+  "title": "Verbrauchs-Coach",
+  "description": "Dein echter Spritverbrauch aus dem Einspritzzähler: jetzt gegen das, was dein M340i bei gleichem Tempo warm üblicherweise braucht, je Fahrt mit Kosten, wie Tempo, Außentemperatur, Fahrmodus und Klima ihn verändern, und was Kaltstarts und Kurzstrecken kosten",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "B5VC",
+  "iconGlyph": "gauge",
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell, and reads only while the engine runs",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.vehicle.CDS": {
+      "_optional": "engine speed, temperature and state: the coolant comes from the engine unit, auto start/stop is not told apart",
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs",
+      "statusEngineStatus": "rs"
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "_optional": "the fuel injection counter: the fuel comes from the engine unit's own flow, read every second",
+      "statusInjectionVolume": "rs"
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "_optional": "the tank level and the car's range: no range at the current consumption",
+      "statusRangeTankStatus": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "_optional": "the driving mode (Eco Pro, Comfort, Sport): no consumption per mode",
+      "statusFESVehicleDynamicSwitchHMI": "rs"
+    },
+    "de.bmw.infotainment.climate.climatemaster.ClimateMaster": {
+      "_optional": "climate on or off: no consumption with and without it",
+      "statusClimateSystemOn": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Verbrauchs-Coach",
+      "buttons": [
+        [
+          "BTN_PAGE",
+          "Nächste Seite"
+        ],
+        [
+          "BTN_PREV",
+          "Vorherige Seite"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Einstellungen"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "window",
+      "label": "Verbrauch jetzt: über die letzten",
+      "type": "number",
+      "unit": "km",
+      "default": 5,
+      "steps": [
+        2,
+        5,
+        10
+      ]
+    },
+    {
+      "key": "price",
+      "label": "Spritpreis (für die Kosten)",
+      "type": "number",
+      "unit": "€/l",
+      "default": 1.85,
+      "steps": [
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4
+      ],
+      "labels": {
+        "1.4": "1,40 €/l",
+        "1.45": "1,45 €/l",
+        "1.5": "1,50 €/l",
+        "1.55": "1,55 €/l",
+        "1.6": "1,60 €/l",
+        "1.65": "1,65 €/l",
+        "1.7": "1,70 €/l",
+        "1.75": "1,75 €/l",
+        "1.8": "1,80 €/l",
+        "1.85": "1,85 €/l",
+        "1.9": "1,90 €/l",
+        "1.95": "1,95 €/l",
+        "2": "2,00 €/l",
+        "2.05": "2,05 €/l",
+        "2.1": "2,10 €/l",
+        "2.15": "2,15 €/l",
+        "2.2": "2,20 €/l",
+        "2.25": "2,25 €/l",
+        "2.3": "2,30 €/l",
+        "2.35": "2,35 €/l",
+        "2.4": "2,40 €/l"
+      }
+    },
+    {
+      "key": "tempUnit",
+      "label": "Temperatureinheit",
+      "type": "choice",
+      "default": "c",
+      "options": [
+        [
+          "c",
+          "Celsius"
+        ],
+        [
+          "f",
+          "Fahrenheit"
+        ]
+      ]
+    },
+    {
+      "key": "diagPage",
+      "label": "Diagnoseseite (UDS-Antworten, Signale)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "theme",
+      "label": "Farbschema",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Rot"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Eisweiß"
+        ],
+        [
+          "amber",
+          "Nacht-Bernstein"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Bildschirmaufteilung",
+      "type": "choice",
+      "default": "full",
+      "options": [
+        [
+          "full",
+          "Vollbild"
+        ],
+        [
+          "standard",
+          "Standard"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Darstellung",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU, 60 Bilder/s (Standard)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Demodaten",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch"
+        ],
+        [
+          "on",
+          "Immer"
+        ],
+        [
+          "off",
+          "Nie"
+        ]
+      ]
+    }
+  ],
+  "config": {
+    "dme": {
+      "comment": "Identifiers of the engine unit (DME 0x12, B58): lib/lib_dme.js DEFAULTS (fuelFlow 5656 l/h, coolant 4300). A key here replaces that value's list for this app."
+    }
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "id": "b58_fuel",
+  "title": "Sprit-Check",
+  "description": "Welcher Kraftstoff lohnt sich für deinen B58? Je Tankfüllung und Sorte: Verbrauch, Kosten je 100 km, die vom Motor adaptierte Oktanzahl, die Zündrücknahme der Klopfregelung unter Last und die Qualitätseinstufung des Motorsteuergeräts, mit dem Vergleich der Sorten",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "B5SC",
+  "iconGlyph": "flag",
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell, and reads only while the engine runs",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs",
+      "statusEngineStatus": "rs"
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "_optional": "the fuel injection counter: the fuel used comes from the tank level only",
+      "statusInjectionVolume": "rs"
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "statusRangeTankStatus": "rs"
+    },
+    "de.bmw.powertrain.AcceleratorPedal": {
+      "_optional": "the accelerator pedal: high load is found from the engine speed and the sport display",
+      "AngleAcceleratorPedal": "s"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "_optional": "the sport display's power: high load is found from the pedal",
+      "statusVehicleDynamicEngine": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Sprit-Check",
+      "buttons": [
+        [
+          "BTN_ACT",
+          "Sorte ändern"
+        ],
+        [
+          "BTN_PAGE",
+          "Nächste Seite"
+        ],
+        [
+          "BTN_PREV",
+          "Vorherige Seite"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Einstellungen"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "price_e10",
+      "label": "Preis Super E10",
+      "type": "number",
+      "unit": "€/l",
+      "default": 1.75,
+      "steps": [
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4
+      ],
+      "labels": {
+        "1.4": "1,40 €/l",
+        "1.45": "1,45 €/l",
+        "1.5": "1,50 €/l",
+        "1.55": "1,55 €/l",
+        "1.6": "1,60 €/l",
+        "1.65": "1,65 €/l",
+        "1.7": "1,70 €/l",
+        "1.75": "1,75 €/l",
+        "1.8": "1,80 €/l",
+        "1.85": "1,85 €/l",
+        "1.9": "1,90 €/l",
+        "1.95": "1,95 €/l",
+        "2": "2,00 €/l",
+        "2.05": "2,05 €/l",
+        "2.1": "2,10 €/l",
+        "2.15": "2,15 €/l",
+        "2.2": "2,20 €/l",
+        "2.25": "2,25 €/l",
+        "2.3": "2,30 €/l",
+        "2.35": "2,35 €/l",
+        "2.4": "2,40 €/l"
+      }
+    },
+    {
+      "key": "price_super",
+      "label": "Preis Super",
+      "type": "number",
+      "unit": "€/l",
+      "default": 1.8,
+      "steps": [
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4
+      ],
+      "labels": {
+        "1.4": "1,40 €/l",
+        "1.45": "1,45 €/l",
+        "1.5": "1,50 €/l",
+        "1.55": "1,55 €/l",
+        "1.6": "1,60 €/l",
+        "1.65": "1,65 €/l",
+        "1.7": "1,70 €/l",
+        "1.75": "1,75 €/l",
+        "1.8": "1,80 €/l",
+        "1.85": "1,85 €/l",
+        "1.9": "1,90 €/l",
+        "1.95": "1,95 €/l",
+        "2": "2,00 €/l",
+        "2.05": "2,05 €/l",
+        "2.1": "2,10 €/l",
+        "2.15": "2,15 €/l",
+        "2.2": "2,20 €/l",
+        "2.25": "2,25 €/l",
+        "2.3": "2,30 €/l",
+        "2.35": "2,35 €/l",
+        "2.4": "2,40 €/l"
+      }
+    },
+    {
+      "key": "price_plus",
+      "label": "Preis Super Plus",
+      "type": "number",
+      "unit": "€/l",
+      "default": 1.9,
+      "steps": [
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4
+      ],
+      "labels": {
+        "1.4": "1,40 €/l",
+        "1.45": "1,45 €/l",
+        "1.5": "1,50 €/l",
+        "1.55": "1,55 €/l",
+        "1.6": "1,60 €/l",
+        "1.65": "1,65 €/l",
+        "1.7": "1,70 €/l",
+        "1.75": "1,75 €/l",
+        "1.8": "1,80 €/l",
+        "1.85": "1,85 €/l",
+        "1.9": "1,90 €/l",
+        "1.95": "1,95 €/l",
+        "2": "2,00 €/l",
+        "2.05": "2,05 €/l",
+        "2.1": "2,10 €/l",
+        "2.15": "2,15 €/l",
+        "2.2": "2,20 €/l",
+        "2.25": "2,25 €/l",
+        "2.3": "2,30 €/l",
+        "2.35": "2,35 €/l",
+        "2.4": "2,40 €/l"
+      }
+    },
+    {
+      "key": "price_premium",
+      "label": "Preis Premium 100+",
+      "type": "number",
+      "unit": "€/l",
+      "default": 2.05,
+      "steps": [
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4
+      ],
+      "labels": {
+        "1.4": "1,40 €/l",
+        "1.45": "1,45 €/l",
+        "1.5": "1,50 €/l",
+        "1.55": "1,55 €/l",
+        "1.6": "1,60 €/l",
+        "1.65": "1,65 €/l",
+        "1.7": "1,70 €/l",
+        "1.75": "1,75 €/l",
+        "1.8": "1,80 €/l",
+        "1.85": "1,85 €/l",
+        "1.9": "1,90 €/l",
+        "1.95": "1,95 €/l",
+        "2": "2,00 €/l",
+        "2.05": "2,05 €/l",
+        "2.1": "2,10 €/l",
+        "2.15": "2,15 €/l",
+        "2.2": "2,20 €/l",
+        "2.25": "2,25 €/l",
+        "2.3": "2,30 €/l",
+        "2.35": "2,35 €/l",
+        "2.4": "2,40 €/l"
+      }
+    },
+    {
+      "key": "loadRpm",
+      "label": "Volllast ab Drehzahl",
+      "type": "number",
+      "unit": "1/min",
+      "default": 2500,
+      "steps": [
+        2000,
+        2500,
+        3000,
+        3500
+      ]
+    },
+    {
+      "key": "diagPage",
+      "label": "Diagnoseseite (UDS-Antworten, Signale)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "theme",
+      "label": "Farbschema",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Rot"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Eisweiß"
+        ],
+        [
+          "amber",
+          "Nacht-Bernstein"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Bildschirmaufteilung",
+      "type": "choice",
+      "default": "full",
+      "options": [
+        [
+          "full",
+          "Vollbild"
+        ],
+        [
+          "standard",
+          "Standard"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Darstellung",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU, 60 Bilder/s (Standard)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Demodaten",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch"
+        ],
+        [
+          "on",
+          "Immer"
+        ],
+        [
+          "off",
+          "Nie"
+        ]
+      ]
+    }
+  ],
+  "config": {
+    "dme": {
+      "comment": "Identifiers of the engine unit (DME 0x12, B58): lib/lib_dme.js DEFAULTS. A key here replaces that value's list for this app."
+    }
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "id": "b58_pull",
+  "title": "Pull-Check",
+  "description": "Bewertet jede Volllastbeschleunigung von selbst: ob der Ladedruck seinen Sollwert erreicht, wie viel Zündung die Klopfregelung zurücknimmt, ob der Raildruck hält, wie warm die Ansaugluft wird und ob das Gemisch passt, mit der geschätzten Radleistung gegen eine Referenzbeschleunigung im selben Gang",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "B5PC",
+  "iconGlyph": "dyno",
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs",
+      "statusEngineStatus": "rs"
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "statusLongitudinalAccelerationMassCenter": "rs"
+    },
+    "de.bmw.powertrain.AcceleratorPedal": {
+      "_optional": "the accelerator pedal: full throttle is found from the sport display's power",
+      "AngleAcceleratorPedal": "s"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "_optional": "the sport display's power: full throttle is found from the pedal",
+      "statusVehicleDynamicEngine": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Pull-Check",
+      "buttons": [
+        [
+          "BTN_ACT",
+          "Als Referenz merken"
+        ],
+        [
+          "BTN_SEL",
+          "Nächster Pull"
+        ],
+        [
+          "BTN_PAGE",
+          "Nächste Seite"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Einstellungen"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "mass",
+      "label": "Auto mit Insassen und Gepäck",
+      "type": "number",
+      "unit": "kg",
+      "default": 1830,
+      "steps": [
+        1700,
+        1750,
+        1800,
+        1830,
+        1850,
+        1900,
+        1950,
+        2000,
+        2050,
+        2100
+      ]
+    },
+    {
+      "key": "trigger",
+      "label": "Volllast ab Gaspedal",
+      "type": "number",
+      "unit": "%",
+      "default": 90,
+      "steps": [
+        80,
+        85,
+        90,
+        95
+      ]
+    },
+    {
+      "key": "powerUnit",
+      "label": "Leistung in",
+      "type": "choice",
+      "default": "kw",
+      "options": [
+        [
+          "kw",
+          "kW"
+        ],
+        [
+          "ps",
+          "PS"
+        ]
+      ]
+    },
+    {
+      "key": "diagPage",
+      "label": "Diagnoseseite (UDS-Antworten, Signale)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "theme",
+      "label": "Farbschema",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Rot"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Eisweiß"
+        ],
+        [
+          "amber",
+          "Nacht-Bernstein"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Bildschirmaufteilung",
+      "type": "choice",
+      "default": "full",
+      "options": [
+        [
+          "full",
+          "Vollbild"
+        ],
+        [
+          "standard",
+          "Standard"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Darstellung",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU, 60 Bilder/s (Standard)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Demodaten",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatisch"
+        ],
+        [
+          "on",
+          "Immer"
+        ],
+        [
+          "off",
+          "Nie"
+        ]
+      ]
+    }
+  ],
+  "config": {
+    "dme": {
+      "comment": "Identifiers of the engine unit (DME 0x12, B58): lib/lib_dme.js DEFAULTS (boostAct, boostTarget, knockRetard, railAct, railTarget, iat, lambda, lambdaTarget). A key here replaces that value's list for this app."
+    }
+  }
+}

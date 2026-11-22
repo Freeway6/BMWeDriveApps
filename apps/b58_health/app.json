@@ -1,0 +1,68 @@
+{
+  "id": "b58_health",
+  "title": "Motor-Check",
+  "description": "Der Gesundheitsverlauf des B58 über Wochen und Monate: Fehlzündungen, Laufruhe und Injektoren je Zylinder, Gemischadaption, Ölstand und Ölverbrauch, Kraftstoff im Öl, Öldruck im warmen Leerlauf, Warmlauf, Klopfregelung und Zündkerzen, mit Hinweisen, was zu beobachten oder prüfen zu lassen ist",
+  "version": "0.1.0",
+  "autostart": true,
+  "vendor": "custom",
+  "loggingId": "B5MC",
+  "iconGlyph": "engine",
+  "mguHmi": ["ID7", "ID8"],
+  "signals": {
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": ["sendTasuRequest"],
+      "_broadcasts": ["sendTasuResponse"]
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs",
+      "statusOilDipstick2": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "ExteriorTemperature": "s"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: the app cannot tell, and reads only while the engine runs",
+      "VehicleCondition": "s"
+    },
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs",
+      "statusEngineStatus": "rs"
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "_optional": "the odometer: no oil use per 1000 km",
+      "statusRangeTankStatus": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Motor-Check",
+      "buttons": [
+        ["BTN_ACT", "Jetzt messen"],
+        ["BTN_PAGE", "Nächste Seite"],
+        ["BTN_PREV", "Vorherige Seite"],
+        ["BTN_SETTINGS", "Einstellungen"]
+      ]
+    }
+  ],
+  "settings": [
+    { "key": "every", "label": "Messen höchstens alle", "type": "number", "unit": "h", "default": 6, "steps": [1, 3, 6, 12, 24] },
+    { "key": "oilWarn", "label": "Ölverbrauch: Hinweis ab", "type": "number", "unit": "l/1000 km", "default": 0.5, "steps": [0.3, 0.5, 0.7, 1],
+      "labels": { "0.3": "0,3 l/1000 km", "0.5": "0,5 l/1000 km", "0.7": "0,7 l/1000 km", "1": "1 l/1000 km" } },
+    { "key": "tempUnit", "label": "Temperatureinheit", "type": "choice", "default": "c", "options": [["c", "Celsius"], ["f", "Fahrenheit"]] },
+    { "key": "diagPage", "label": "Diagnoseseite (UDS-Antworten, Signale)", "type": "bool", "default": false },
+    { "key": "theme", "label": "Farbschema", "type": "choice", "default": "m_tricolour",
+      "options": [["m_red", "M Rot"], ["m_tricolour", "M Tricolour"], ["ice", "Eisweiß"], ["amber", "Nacht-Bernstein"]] },
+    { "key": "layout", "label": "Bildschirmaufteilung", "type": "choice", "default": "full", "options": [["full", "Vollbild"], ["standard", "Standard"]] },
+    { "key": "renderer", "label": "Darstellung", "type": "choice", "default": "auto", "options": [["auto", "GPU, 60 Bilder/s (Standard)"], ["software", "Software"]] },
+    { "key": "demo", "label": "Demodaten", "type": "choice", "default": "auto", "options": [["auto", "Automatisch"], ["on", "Immer"], ["off", "Nie"]] }
+  ],
+  "config": {
+    "dme": {
+      "comment": "Identifiers of the engine unit (DME 0x12, B58): lib/lib_dme.js DEFAULTS has every value and its candidates. A key here replaces that value's list for this app, e.g. \"oilLevel\": [{ \"did\": \"5811\", \"bytes\": 1, \"factor\": 0.01, \"min\": 0, \"max\": 2.5 }]."
+    }
+  }
+}

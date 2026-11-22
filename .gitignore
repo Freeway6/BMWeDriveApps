@@ -1,0 +1,9 @@
+# build output
+dist/
+preview/
+oap-sdk/
+apps/*/lib_*.js
+test/stage/
+__pycache__/
+*.pyc
+node_modules/
