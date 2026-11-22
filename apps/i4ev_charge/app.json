@@ -1,9 +1,10 @@
 {
   "id": "i4ev_charge",
   "title": "Ladekurve",
-  "description": "Zeichnet jede Ladung auf, solange die Headunit an ist: Leistung über dem Ladestand, Zelltemperatur, Energie, Zeit je 10 % und Kosten, verglichen mit deiner besten Ladung; lernt, was dein Auto bei welchem Ladestand und welcher Temperatur wirklich lädt (die Vorkonditionierung nutzt das)",
-  "version": "0.2.0",
+  "description": "Zeichnet jede Ladung auf, solange die Headunit an ist: Leistung über dem Ladestand, Zelltemperatur, Energie, Zeit je 10 % und Kosten, verglichen mit deiner besten Ladung; lernt, was dein Auto bei welchem Ladestand und welcher Temperatur wirklich lädt (die Vorkonditionierung nutzt das). Auf Wunsch live auf iPhone und Apple Watch (Ende-zu-Ende verschlüsselt, über das Internet-Uplink des Stores)",
+  "version": "0.3.0",
   "autostart": true,
+  "internet": true,
   "vendor": "custom",
   "loggingId": "I4CH",
   "iconGlyph": "battery",
@@ -241,6 +242,25 @@
       ]
     },
     {
+      "key": "live",
+      "label": "Live auf iPhone und Apple Watch",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "liveEvery",
+      "label": "Live: beim Laden senden alle",
+      "type": "number",
+      "unit": "s",
+      "default": 15,
+      "steps": [
+        10,
+        15,
+        30,
+        60
+      ]
+    },
+    {
       "key": "diagPage",
       "label": "Diagnoseseite (UDS-Antworten, Signale)",
       "type": "bool",
@@ -326,6 +346,11 @@
   "config": {
     "hv": {
       "comment": "UDS identifiers of the high-voltage battery (lib/ev_hv.js DEFAULTS has the full lists: soc, energy, volt, amp, temp, cellV, odo, dcPlug). A key here replaces that list for this app, e.g. \"amp\": [{ \"did\": \"E561\", \"bytes\": 4, \"factor\": 0.01, \"signed\": true, \"min\": -1000, \"max\": 1000 }]. powerSign: kW out of the battery = V x A / 1000 x powerSign; the app learns it by itself (setting Battery current direction)."
+    },
+    "live": {
+      "comment": "The relay the head unit sends the charge to (relay/README.md): its address, e.g. https://i4-live.<name>.workers.dev. Empty: live is off. tls: fallback (the default: without a checked certificate when neither Node 8 nor lib/ev_roots.js know its root; the content stays end-to-end encrypted) or strict.",
+      "relay": "",
+      "tls": "fallback"
     }
   }
 }

@@ -12,10 +12,14 @@ translates the texts the kit draws itself (Settings, Back, On / Off, ...). The a
 their code and app.json. The package keeps the app's version (the kit would add "-de.1" to it, and the Store
 would then see an update that never ends).
 
+An app whose app.json says "internet": true gets "mguInternet": true in its package.json: the Store's uplink
+(mgu-uplink) then gives that app internet (Charge Curve's live view on the iPhone, lib/ev_live.js).
+
 On the head unit the MGU Store runs this (mgu-repo.json) with the oap-sdk it generated from a stock app in
 oap-sdk/; the copies of lib/ in apps/<id>/ and dist/ are build output (.gitignore).
 """
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -59,6 +63,23 @@ def stage_kit():
     return st
 
 
+class KitJson:
+    """The kit's json module for one app's build: an app whose app.json says "internet": true gets
+    "mguInternet": true in its package.json (the Store's uplink then gives it internet, docs/PUBLISHING.md of
+    mgu-store); everything else is json as it is."""
+
+    def __init__(self, internet):
+        self.internet = internet
+
+    def __getattr__(self, name):
+        return getattr(json, name)
+
+    def dump(self, obj, fp, *args, **kwargs):
+        if self.internet and isinstance(obj, dict) and 'oapAppSettings' in obj and str(getattr(fp, 'name', '')).endswith('package.json'):
+            obj = dict(obj, mguInternet=True)
+        return json.dump(obj, fp, *args, **kwargs)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--preview-only', action='store_true')
@@ -68,6 +89,8 @@ def main():
     stage_kit()
     for i in ids:
         stage_lib(i)
+        spec = json.load(open(os.path.join(APPS, i, 'app.json'), encoding='utf-8'))
+        kit.json = KitJson(bool(spec.get('internet')))
         kit.build(i, LANGUAGE, preview_only=a.preview_only)
 
 

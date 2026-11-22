@@ -14,6 +14,10 @@
  *     /tmp/i4ev-charge-grid.json for the Precondition app.
  *   - the car locked and left: no reads (they would keep it awake), except for 10 minutes after it was left (a plug
  *     put in after walking away) and while a charge is going on.
+ *   - live on the iPhone and the Apple Watch (setting "Live", app.json config.live.relay): the state every few
+ *     seconds while charging (every 5 minutes else) with what the rest of the charge should take, and the curve,
+ *     end-to-end encrypted to the owner's relay through the Store's internet uplink (lib/ev_live.js, ev_livedoc.js).
+ *     Pairing: the QR code on the iPhone page.
  *
  * Values come from the battery unit over UDS (lib/ev_hv.js); speed and vehicle state over SOME/IP.
  */
@@ -26,6 +30,8 @@ const { ChargeTracker, between, span, reference } = require('./ev_charge');
 const { DemoCharge, demoSessions } = require('./ev_demo');
 const M = require('./ev_model');
 const U = require('./ev_ui');
+const { LiveLink } = require('./ev_live');
+const D = require('./ev_livedoc');
 
 const { isNum } = C;
 const W = 1600, H = 520;
@@ -33,7 +39,8 @@ const SHARED = '/tmp/i4ev-charge-grid.json';
 const IDLE_MS = 20000;
 const LEFT_GRACE = 10 * 60000;
 const LOSS = { DC: 1.05, AC: 1.1 };      // energy from the charger per kWh into the battery (estimate)
-const NAMES = { live: 'Jetzt', curve: 'Kurve', log: 'Ladungen', diag: 'Diagnose' };
+const NAMES = { live: 'Jetzt', curve: 'Kurve', log: 'Ladungen', phone: 'iPhone', diag: 'Diagnose' };
+const IDLE_LIVE_MS = 5 * 60000;            // live, not charging: the state this often
 
 /* ---------------- the recorder: runs from the start, with or without the screens ---------------- */
 function engine(env) {
@@ -46,23 +53,28 @@ function engine(env) {
     const now = { kwIn: null, v: null, a: null, soc: null, temp: null, energy: null, t: 0 };
     let visible = false, stopped = false, leftSince = 0, lastIdle = 0, lastSoc = 0, lastTemp = 0, lastEnergy = 0, resumed = false, gridDirty = false;
     let wake = null;
+    // live on the iPhone: the link sends in a loop of its own; liveNow: send at the next round (a start, an end)
+    const liveCfg = (spec.config && spec.config.live) || {};
+    const link = new LiveLink({ dataDir: env.dataDir, log, relay: liveCfg.relay || null, tls: liveCfg.tls, enabled: () => !!settings.get('live') });
+    let liveStateAt = 0, liveCurveAt = 0, liveCurveKey = '', liveNow = true;
 
     const share = () => {
         try { C.writeJson(SHARED, { t: Date.now(), battery: settings.get('battery'), grid: st.grid }, 0o644); gridDirty = false; } catch (e) { log.warn('shared grid: ' + e); }
     };
     const tracker = new ChargeTracker(st, {
-        onStart: (o) => { log.info('charge started at ' + G.fmt(o.soc0, 1) + ' %'); store.save(true); },
+        onStart: (o) => { log.info('charge started at ' + G.fmt(o.soc0, 1) + ' %'); store.save(true); liveNow = true; },
         onClose: (s) => {
             log.info('charge ' + s.kind + ' ' + G.fmt(s.soc0, 1) + ' -> ' + G.fmt(s.soc1, 1) + ' %, ' + G.fmt(s.kwh, 1) + ' kWh, peak ' + G.fmt(s.peak, 0) + ' kW (' + s.reason + ')');
             if (s.kind === 'AC' && !settings.get('logAc')) st.sessions.pop();
             st.pick = hv.pick;
             store.save(true);
             share();
+            liveNow = true;
         },
     });
     const applySign = () => hv.applySign(settings.get('signMode'), st.sign);
     applySign();
-    settings.onChange((k) => { if (k === 'signMode') applySign(); });
+    settings.onChange((k) => { if (k === 'signMode') applySign(); if (k === 'live' || k === 'target' || k === 'battery') liveNow = true; });
     share();
 
     const cellT = () => {
@@ -100,6 +112,29 @@ function engine(env) {
         if (gridDirty && (!o || Math.random() < 0.05)) share();
     }
 
+    /**
+     * Live: the state while charging every liveEvery seconds (else every 5 minutes), the curve when it has grown
+     * (at most every minute while charging). Only real readings: nothing in the demo.
+     */
+    const liveOpts = (t) => ({ t, seq: t, target: Number(settings.get('target')), battery: settings.get('battery'),
+        price: { DC: settings.get('priceDc'), AC: settings.get('priceAc') }, loss: LOSS });
+    function liveTick(t) {
+        if (!link.enabled() || demoOn() || !hv.available) return;
+        const v = { st, open: st.open, now, cellT: cellT(), link: hv.available }, o = st.open;
+        if (liveNow || t - liveStateAt >= (o ? Math.max(5, settings.get('liveEvery') || 15) * 1000 : IDLE_LIVE_MS)) {
+            link.put('state', D.stateDoc(v, liveOpts(t)));
+            liveStateAt = t;
+        }
+        const s = o || st.sessions[st.sessions.length - 1];
+        const key = s ? s.id + ':' + (s.points ? s.points.length : 0) + ':' + (o ? 'open' : 'done') : 'none';
+        if (key !== liveCurveKey && (liveNow || !o || t - liveCurveAt >= 60000)) {
+            link.put('curve', D.curveDoc(v, liveOpts(t)));
+            liveCurveKey = key;
+            liveCurveAt = t;
+        }
+        liveNow = false;
+    }
+
     const sleep = (ms) => new Promise((res) => { const tm = setTimeout(() => { wake = null; res(); }, ms); wake = () => { clearTimeout(tm); wake = null; res(); }; });
     async function loop() {
         await hv.init();
@@ -116,6 +151,7 @@ function engine(env) {
                     }
                 }
                 if (demoOn()) demoTick();
+                liveTick(Date.now());
             } catch (e) { log.warn('read: ' + (e && e.message || e)); }
             await sleep(Math.max(500, wait));
         }
@@ -138,15 +174,18 @@ function engine(env) {
 
     loop();
     return {
-        ok: true, hv, live, st, store, settings,
+        ok: true, hv, live, st, store, settings, link,
         setVisible(v) { visible = v; if (v && wake) wake(); },
+        /** Live: send the state and curve now (button), a new pairing (button, twice). */
+        liveSend() { liveNow = true; liveCurveKey = ''; if (wake) wake(); },
+        liveRekey() { link.rekey(); liveNow = true; liveCurveKey = ''; if (wake) wake(); },
         /** What the screens show: the real recorder's, or the demo's. */
         view() {
             if (demoOn()) { if (!demo) demoTick(); return { demo: true, st: demo.st, open: demo.st.open, now: demo.now, link: true }; }
             return { demo: false, st, open: st.open, now, link: hv.available, cellT: cellT(), left: !!leftSince };
         },
         pin(id) { const s = demoOn() && demo ? demo.st : st; s.pinned = s.pinned === id ? null : id; store.save(true); },
-        stop() { stopped = true; if (wake) wake(); },
+        stop() { stopped = true; link.stop(); if (wake) wake(); },
     };
 }
 
@@ -156,7 +195,8 @@ function startUi(ctx, eng) {
     const F = C.fmt;
     let sel = 0;              // the charge shown on Curve and marked on Charges: 0 = the newest
     let scroll = 0;
-    const pages = () => ['live', 'curve', 'log'].concat(settings.get('diagPage') ? ['diag'] : []);
+    const pages = () => ['live', 'curve', 'log', 'phone'].concat(settings.get('diagPage') ? ['diag'] : []);
+    let rekeyArmed = 0;           // iPhone page: "Neu koppeln" pressed once, waiting for the second press
     const pg = U.pager(ctx, pages, NAMES, () => { labels(); return render(); });
     const sessions = (v) => v.st.sessions.slice().reverse();          // newest first
     const tU = () => (settings.get('tempUnit') === 'f' ? '°F' : '°C');
@@ -168,19 +208,27 @@ function startUi(ctx, eng) {
     let actText = '', pinText = '';
     function labels() {
         const p = pg.page(), v = eng.view(), list = sessions(v), s = list[sel];
-        const a = p === 'live' ? 'Letzte Ladung zeigen' : 'Nächste Ladung';
-        const b = s && v.st.pinned === s.id ? 'Referenz lösen' : 'Als Referenz merken';
+        const armed = Date.now() - rekeyArmed < 8000;
+        const a = p === 'phone' ? (armed ? 'Wirklich neu koppeln?' : 'Neu koppeln') : p === 'live' ? 'Letzte Ladung zeigen' : 'Nächste Ladung';
+        const b = p === 'phone' ? 'Jetzt senden' : s && v.st.pinned === s.id ? 'Referenz lösen' : 'Als Referenz merken';
         if (a !== actText) { actText = a; ui.text('BTN_ACT', a); }
         if (b !== pinText) { pinText = b; ui.text('BTN_PIN', b); }
     }
     ui.onClick('BTN_ACT', () => {
         const n = sessions(eng.view()).length;
+        if (pg.page() === 'phone') {
+            // a new key and channel: the paired iPhone has to scan the new code
+            if (Date.now() - rekeyArmed < 8000) { rekeyArmed = 0; eng.liveRekey(); } else rekeyArmed = Date.now();
+            labels();
+            return render();
+        }
         if (pg.page() === 'live') { sel = 0; return pg.turn(1); }
         if (n) sel = (sel + 1) % n;
         labels();
         return render();
     });
     ui.onClick('BTN_PIN', () => {
+        if (pg.page() === 'phone') { eng.liveSend(); return render(); }
         const s = sessions(eng.view())[sel];
         if (s) eng.pin(s.id);
         labels();
@@ -254,7 +302,8 @@ function startUi(ctx, eng) {
             rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 290 + i * 44, x[0], x[1], i === 3 ? t.dim : null));
         }
         // the curve: this charge (or the last), its reference, and what the model expects at the cells' temperature now
-        const s = o ? Object.assign({}, o, { points: o.points }) : list[0];
+        // a charge going on has no kind yet, only its dc flag (reference() compares kinds)
+        const s = o ? Object.assign({}, o, { points: o.points, kind: o.dc || o.peak > 11.5 ? 'DC' : 'AC' }) : list[0];
         const ref = reference(v.st.sessions, s, v.st.pinned);
         const rr = G.panel(cv, t, 688, 44, 888, 468, o ? 'Diese Ladung' : s ? 'Letzte Ladung  ' + C.when(s.t0) : 'Kurve');
         const own = curvePts(s), refPts = curvePts(ref), exp = expected(isNum(cT) ? cT : 25, v, null);
@@ -331,11 +380,52 @@ function startUi(ctx, eng) {
         cv.scroll = { y: y0 + 30 };
     }
 
+    /** Live on the iPhone: what the link does, and the pairing code. */
+    function drawPhone(cv, t, v) {
+        const L = eng.link, ls = L.status();
+        const r = G.panel(cv, t, 24, 44, 860, 468, 'Live auf iPhone und Apple Watch');
+        const q = G.panel(cv, t, 908, 44, 668, 468, 'Koppeln');
+        if (!ls.configured) {
+            U.note(cv, t, r.x, r.y, r.w, r.h, 'Noch kein Relay eingetragen.\nIm Repository: apps/i4ev_charge/app.json,\nconfig.live.relay (Anleitung: relay/README.md).');
+            U.note(cv, t, q.x, q.y, q.w, q.h, 'Der Code erscheint, sobald\nein Relay eingetragen ist.');
+            return;
+        }
+        if (!settings.get('live')) {
+            U.note(cv, t, r.x, r.y, r.w, r.h, 'Aus.\nEinstellungen: "Live auf iPhone und Apple Watch" einschalten.\nInternet bekommt die App über das Uplink des Stores\n(LTE-Stick, Handy-Hotspot oder WLAN).');
+            U.note(cv, t, q.x, q.y, q.w, q.h, 'Der Code erscheint,\nsobald Live eingeschaltet ist.');
+            return;
+        }
+        const ago = (ms) => {
+            if (!ms) return 'noch nie';
+            const sec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+            return C.when(ms) + '  (vor ' + (sec < 60 ? sec + ' s' : C.dur(sec * 1000)) + ')';
+        };
+        const tls = { system: 'HTTPS, Zertifikat geprüft', roots: 'HTTPS, mit eigenen Stammzertifikaten geprüft', insecure: 'HTTPS ungeprüft, Inhalt verschlüsselt' };
+        const rows = [
+            ['Internet (Uplink)', ls.uplink === 'online' ? 'verbunden' : 'nicht verbunden', ls.uplink === 'online' ? U.GO : t.warn],
+            ['Relay', ls.relayHost],
+            ['Zuletzt gesendet', ago(ls.lastOk), ls.lastOk && Date.now() - ls.lastOk < 120000 ? U.GO : null],
+            ['Fehler', ls.lastError || 'keiner', ls.lastError ? t.warn : null],
+            ['Verbindung', ls.tls ? tls[ls.tls] : '--'],
+            ['Gesendet', String(ls.sent) + (ls.queued ? '   (' + ls.queued + ' wartet)' : '')],
+        ];
+        rows.forEach((x, i) => U.row(cv, t, r.x + 24, r.w - 48, r.y + 92 + i * 46, x[0], x[1], x[2]));
+        cv.text(v.open ? 'Lädt: alle ' + (settings.get('liveEvery') || 15) + ' s.' : 'Lädt nicht: alle 5 Minuten.', r.x + 24, r.y + 392, 20, t.dim);
+        cv.text('Ende-zu-Ende verschlüsselt (AES-256): das Relay sieht keine Werte.', r.x + 24, r.y + 424, 20, t.dim);
+        // the pairing code: the link holds the key; whoever scans it can follow the charge
+        const url = L.pairUrl(), channel = L.ensurePairing().channel, size = 340;
+        const w = U.qr(cv, q.x + (q.w - size) / 2, q.y + 60, size, url);
+        cv.text('Mit der iPhone-Kamera scannen,', q.x + q.w / 2, q.y + 60 + w + 34, 20, t.text, { align: 'center' });
+        cv.text('dann in "i4 Laden" öffnen.  Kanal ' + channel.slice(0, 8), q.x + q.w / 2, q.y + 60 + w + 60, 18, t.dim, { align: 'center' });
+    }
+
     function render() {
         const t = ctx.theme(), cv = ctx.canvas(W, H).clear(t.bg), v = eng.view(), p = pg.page();
+        if (rekeyArmed && Date.now() - rekeyArmed >= 8000) { rekeyArmed = 0; labels(); }
         if (p === 'live') drawLive(cv, t, v);
         else if (p === 'curve') drawCurve(cv, t, v);
         else if (p === 'log') drawLog(cv, t, v);
+        else if (p === 'phone') drawPhone(cv, t, v);
         else U.diagPage(cv, t, eng.hv, eng.live, [['gelernte Felder', String(Object.keys(v.st.grid || {}).length)], ['Tempo', F(eng.live.speed, 1) + ' km/h'], ['Fahrzeugzustand', String(eng.live.cond)]]);
         pg.header(cv, t, [U.demoBadge(v.demo), v.open && { text: 'LÄDT', color: U.GO }]);
         return ui.image('MAIN_GFX', cv);

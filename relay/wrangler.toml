@@ -1,0 +1,14 @@
+# i4 Live relay: deploy with  npx wrangler deploy  (relay/README.md)
+name = "i4-live"
+main = "src/worker.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+# one Durable Object per paired car; SQLite-backed, so it runs on the Workers Free plan
+[[durable_objects.bindings]]
+name = "CHANNEL"
+class_name = "Channel"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Channel"]

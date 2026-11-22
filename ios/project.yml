@@ -1,0 +1,146 @@
+# i4 Laden: the iPhone and Apple Watch app for Charge Curve's live view (ios/README.md).
+# Generate the Xcode project with XcodeGen (brew install xcodegen):  cd ios && xcodegen
+# Team and bundle id prefix: Config.xcconfig (yours in Config.local.xcconfig, not in the repository).
+name: I4Laden
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+    watchOS: "11.0"
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: $(I4_TEAM)
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_PREVIEWS: YES
+
+targets:
+  # the iPhone app: live view, charts, pairing, Live Activity, background refresh, the pairing for the watch
+  I4Laden:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Shared
+      - Phone
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: i4 Laden
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSSupportsLiveActivities: true
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [$(PRODUCT_BUNDLE_IDENTIFIER).refresh]
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER).pair
+            CFBundleURLSchemes: [i4laden]
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(I4_BUNDLE_PREFIX).i4laden
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - target: I4LadenWidgets
+      - target: I4LadenWatch
+
+  # the Live Activity (Lock Screen, Dynamic Island; the watch's Smart Stack)
+  I4LadenWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared
+      - Phone
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: i4 Laden
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(I4_BUNDLE_PREFIX).i4laden.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+
+  # the Apple Watch app (one target, Xcode 14 and later); embedded in the iPhone app
+  I4LadenWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - Watch
+      - Shared
+      - WatchShared
+    info:
+      path: Watch/Info.plist
+      properties:
+        CFBundleDisplayName: i4 Laden
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: $(I4_BUNDLE_PREFIX).i4laden
+        I4AppGroup: group.$(I4_BUNDLE_PREFIX).i4laden
+    entitlements:
+      path: Watch/Watch.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(I4_BUNDLE_PREFIX).i4laden]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(I4_BUNDLE_PREFIX).i4laden.watchkitapp
+        TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: I4LadenWatchWidgets
+
+  # the complications (watch face)
+  I4LadenWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - WatchWidgets
+      - Shared
+      - WatchShared
+    info:
+      path: WatchWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: i4 Laden
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        I4AppGroup: group.$(I4_BUNDLE_PREFIX).i4laden
+    entitlements:
+      path: WatchWidgets/WatchWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(I4_BUNDLE_PREFIX).i4laden]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(I4_BUNDLE_PREFIX).i4laden.watchkitapp.widgets
+        TARGETED_DEVICE_FAMILY: "4"
+
+schemes:
+  I4Laden:
+    build:
+      targets:
+        I4Laden: all
+    run:
+      config: Debug
+  I4LadenWatch:
+    build:
+      targets:
+        I4LadenWatch: all
+    run:
+      config: Debug

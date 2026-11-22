@@ -11,6 +11,9 @@
 - **Battery identifiers and scalings** in `lib/ev_hv.js` (which DID holds which value, and how it is scaled):
   from the OBDb signal sets of the [iX3](https://github.com/OBDb/BMW-iX3), [iX](https://github.com/OBDb/BMW-iX)
   and [i4](https://github.com/OBDb/BMW-i4) (CC BY-SA 4.0) and from idrive7-apps' eDrive app (MIT).
+- **Root certificates** in `lib/ev_roots.js` (ISRG, Google Trust Services, GlobalSign, DigiCert, SSL.com, Sectigo
+  USERTrust): public CA certificates as Mozilla's CA store carries them (Debian `ca-certificates`), for the head
+  unit's HTTPS to the live relay when Node 8's own list (2019) lacks a root.
 - **The DC charging curve** in `lib/ev_model.js` is a typical published curve for the i4's 83.9 kWh battery,
   an estimate, not BMW data.
 

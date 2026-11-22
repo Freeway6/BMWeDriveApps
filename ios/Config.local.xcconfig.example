@@ -1,0 +1,3 @@
+// Copy to Config.local.xcconfig and fill in (not committed).
+I4_TEAM = ABCDE12345
+I4_BUNDLE_PREFIX = de.vorname.nachname

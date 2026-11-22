@@ -1,0 +1,10 @@
+// Signing and bundle ids for i4 Laden (ios/README.md). Put your own values in Config.local.xcconfig (next to this
+// file, not in the repository: .gitignore); it overrides these.
+//
+// I4_TEAM: your team id. Xcode > Settings > Accounts > your Apple Account > the team ("Personal Team" works too).
+// Leave it empty to pick the team in Xcode (Signing & Capabilities) instead.
+I4_TEAM =
+// I4_BUNDLE_PREFIX: a prefix nobody else uses, e.g. de.vorname.nachname (letters, digits, dots, hyphens).
+I4_BUNDLE_PREFIX = de.example.bmw
+
+#include? "Config.local.xcconfig"
